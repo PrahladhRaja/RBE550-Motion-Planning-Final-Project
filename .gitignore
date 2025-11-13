@@ -1,0 +1,37 @@
+# =====================
+# MATLAB / Simulink .gitignore
+# =====================
+
+# MATLAB backup and autosave files
+*.asv
+*.autosave
+*.mat
+*.mex*
+*.slxc
+*.mdl.autosave
+*.slx.autosave
+*.bak
+
+# Simulink generated code and build folders
+slprj/
+sccprj/
+work/
+codegen/
+*_ert_rtw/
+*_grt_rtw/
+html/
+*.rpt
+
+# Logs and reports
+*.log
+*.txt~
+*.tmp
+*.DS_Store
+
+# Misc
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.bak
+*.swp
