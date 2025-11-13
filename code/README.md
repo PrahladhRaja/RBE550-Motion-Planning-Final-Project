@@ -7,6 +7,7 @@ Then pip install ompl-1.7.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86
 4) Install Genesis pip install genesis
 
 
+source /home/monty/Desktop/RBE550-F25-F02/Project5/code/.venv/bin/activate
 conda activate rbe550
 python run demo.py
 

@@ -202,6 +202,8 @@ class PlannerInterface:
         ########## restore original state #########
         self.robot.set_qpos(qpos_cur)
 
+        #print("Number of waypoints stored in waypoints:", len(waypoints))
+
         return waypoints
 
     def _is_ompl_state_valid(self, state):

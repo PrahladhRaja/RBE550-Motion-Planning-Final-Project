@@ -45,3 +45,4 @@ path = franka.plan_path(
 for waypoint in path:
     franka.control_dofs_position(waypoint)
     scene.step()
+ 
