@@ -7,7 +7,7 @@ import robot_adapter
 import builder
 
 class MotionPrimitives:
-    def __init__(self, robot, blocks_state, scene):
+    def __init__(self, robot, blocks_state, scene) -> None:
         self.robot =  robot
         self.blocks_state = blocks_state
         self.scene = scene
@@ -20,7 +20,7 @@ class MotionPrimitives:
         self.GRIPPER_CLOSE = 0.00
         self.LINK_NAME = "ee"
 
-    def get_cube_pos(self, cube: str):
+    def get_cube_pos(self, cube: str) -> np.array:
         return builder.get_block_pos(cube, self.blocks_state)
     
 
@@ -30,7 +30,7 @@ class MotionPrimitives:
             self.robot.control_dofs_position(waypoint)
             self.scene.step()
         
-    def pick_up(self, cube):
+    def pick_up(self, cube) -> bool:
 
         #pre-grasp - z-distance above cube
         cube_pos = self.get_cube_pos(cube)
@@ -105,6 +105,96 @@ class MotionPrimitives:
         if not self._exec_path(path3):
             print(f"[pick_up] planning failed for lift move over {cube}")
             return False
+        
+        return True
+
+
+    def stack(self, cube1: str, cube2: str) -> bool:
+        
+        # Finding the target cube to stack on and saving coordinated and preplace position
+        that_cube = self.blocks_state[cube2]
+        cube2_pos = self.get_cube_pos(cube2)
+        target_x, target_y, target_z = np.array[float(cube2_pos[0]), float(cube2_pos[1]), float(cube2_pos[2])]
+        target_cube_pos =  np.array[target_x, target_y, target_z + self.Z_DISTANCE_GAP]
+        target_quat1 = np.array([0.0, 1.0, 0.0, 0.0])
+
+        ee_link = self.robot.get_link(self.LINK_NAME)
+        # Gripper remains in the same state as previously called assuming 'stack'
+        #   is always called after 'pick-up' (gripper is closed while holding another cube)
+        stack_goal = self.robot.inverse_kinematics(link= ee_link, pos=target_cube_pos, quat=target_quat1)
+        stack_goal = np.array(stack_goal, dtype=float)
+
+        stack_path = PlannerInterface.plan_path(
+            qpos_goal=stack_goal,
+            qpos_start=None,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=300,  # 3s duration
+            attached_object=that_cube,
+            planner="RRT"
+        )
+
+        if not self._exec_path(stack_path):
+            print(f"[Stack]: planning failed for motion involving initial cube grasped {cube1}")
+            return False
+
+        print(f"[Stacking]: Reached pre-positioning spot on top of block {cube2}")
+
+        # Let it gooooo
+        letgo_goal = stack_goal
+        letgo_goal[-2:] = self.GRIPPER_OPEN
+
+        letgo_path = PlannerInterface.plan_path(
+            qpos_goal=letgo_goal,
+            qpos_start=None,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=100,  # 1s duration
+            attached_object=None,   # No more object
+            planner="RRT"
+        )
+
+        if not self._exec_path(letgo_path):
+            print(f"[Letting Gooo]: planning failed for motion involving releasing grasped cube {cube1}")
+            return False
+
+        print(f"[Letting Gooo]: Successfully placed block on top of block {cube2}")
+
+        # Return to a more natural state for better path planning
+        #   we move away from the original cube we had grasped (now placed on top of another)
+        holding_cube1_pos = self.get_cube_pos(cube1)
+        move_x, move_y, move_z = np.array[float(holding_cube1_pos[0]), float(holding_cube1_pos[1]), float(holding_cube1_pos[2])]
+        move_away_target = np.array[move_x, move_y, move_z + self.Z_DISTANCE_GAP + 0.2]
+
+        move_away_goal = self.robot.inverse_kinematics(link= ee_link, pos=move_away_target, quat=target_quat1)
+        move_away_goal = np.array(stack_goal, dtype=float)
+
+        # Gripper stays open
+        move_away_path = PlannerInterface.plan_path(
+            qpos_goal=move_away_goal,
+            qpos_start=None,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=300,  # 3s duration
+            attached_object=that_cube,
+            planner="RRT"
+        )
+
+        if not self._exec_path(move_away_path):
+            print(f"[Moving Away]: planning failed for motion involving moving away from {cube1}")
+            return False
+
+        print(f"[Moving Away]: Successfully distanced ourselves from block {cube2}")
+
+        return True
+
+
+
+
+
+
+
+
 
 
 
@@ -115,5 +205,3 @@ class MotionPrimitives:
 
 
     
-
-
