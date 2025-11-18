@@ -238,7 +238,11 @@ class MotionPrimitives:
         steps = cleaned_plan.split('\n')
         actions = []
         for step in steps:
+            if not step.strip():
+                continue
+            
             step_cleaned = step.split()
+            print(step_cleaned)
             primative = string2action[step_cleaned[0]]
             args = [color[0] for color in step_cleaned[2:]]
             actions.append((primative, args))
@@ -247,12 +251,12 @@ class MotionPrimitives:
     def execute_symbolic_plan(self, input_file, blockstate):
         with open(input_file, 'r') as file:
             plan = file.read()
-
+        print(plan)
         actions = self.parse_symbolic_plan(plan)
         for i in range(len(actions)):
             action, args = actions[i]
-            cubes = [blockstate[arg] for arg in args]
-            action(*cubes)
+            
+            action(*args)
 
 
 if __name__ == "__main__":
