@@ -221,7 +221,7 @@ class MotionPrimitives:
         actions = self.parse_symbolic_plan(plan)
         for i in range(len(actions)):
             action, args = actions[i]
-            cubes = blockstate[args]
+            cubes = [blockstate[arg] for arg in args]
             action(*cubes)
 
 if __name__ == "__main__":
