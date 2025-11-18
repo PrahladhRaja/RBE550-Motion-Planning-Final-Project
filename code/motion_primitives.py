@@ -18,7 +18,7 @@ class MotionPrimitives:
         self.Z_DISTANCE_GAP = 0.03
         self.GRIPPER_OPEN = 0.05
         self.GRIPPER_CLOSE = 0.00
-        self.LINK_NAME = "ee"
+        self.LINK_NAME = "hand"
 
     def get_cube_pos(self, cube: str) -> np.array:
         return builder.get_block_pos(cube, self.blocks_state)
@@ -43,10 +43,10 @@ class MotionPrimitives:
         ee_link = self.robot.get_link(self.LINK_NAME)
         goal1 = self.robot.inverse_kinematics(link= ee_link, pos=target_pos1, quat=target_quat1)
 
-        goal1 = np.array([goal1])
+        goal1 = np.array(goal1, dtype=float)
         goal1[-2:] = self.GRIPPER_OPEN
 
-        path1 = PlannerInterface.plan_path(
+        path1 = self.planInterface.plan_path(
             qpos_goal=goal1,
             qpos_start=None,
             timeout=5.0,
@@ -56,7 +56,7 @@ class MotionPrimitives:
             planner="RRT"
         )
 
-        if not self._exec_path(path1):
+        if not self.waypoint_plan(path1):
             print(f"[pick_up] planning failed for pre-grasp over {cube}")
             return False
         
@@ -68,7 +68,7 @@ class MotionPrimitives:
 
         goal2 = self.robot.inverse_kinematics(link= ee_link, pos=target_pos2, quat=target_quat2)
 
-        path2 = PlannerInterface.plan_path(
+        path2 = self.planInterface.plan_path(
             qpos_goal=goal1,
             qpos_start=None,
             timeout=5.0,
@@ -78,11 +78,11 @@ class MotionPrimitives:
             planner="RRT"
         )
 
-        if not self._exec_path(path2):
+        if not self.waypoint_plan(path2):
             print(f"[pick_up] planning failed for grasp move over {cube}")
             return False
         
-        goal2 = np.array([goal1])
+        goal2 = np.array(goal2, dtype=float)
         goal2[-2:] = self.GRIPPER_CLOSE
 
         #lift
@@ -102,7 +102,7 @@ class MotionPrimitives:
             attached_object=None, 
             planner="RRT"
         )
-        if not self._exec_path(path3):
+        if not self.waypoint_plan(path3):
             print(f"[pick_up] planning failed for lift move over {cube}")
             return False
         
@@ -124,7 +124,7 @@ class MotionPrimitives:
         stack_goal = self.robot.inverse_kinematics(link= ee_link, pos=target_cube_pos, quat=target_quat1)
         stack_goal = np.array(stack_goal, dtype=float)
 
-        stack_path = PlannerInterface.plan_path(
+        stack_path = self.planInterface.plan_path(
             qpos_goal=stack_goal,
             qpos_start=None,
             timeout=5.0,
@@ -134,7 +134,7 @@ class MotionPrimitives:
             planner="RRT"
         )
 
-        if not self._exec_path(stack_path):
+        if not self.waypoint_plan(stack_path):
             print(f"[Stack]: planning failed for motion involving initial cube grasped {cube1}")
             return False
 
@@ -144,7 +144,7 @@ class MotionPrimitives:
         letgo_goal = stack_goal
         letgo_goal[-2:] = self.GRIPPER_OPEN
 
-        letgo_path = PlannerInterface.plan_path(
+        letgo_path = self.planInterface.plan_path(
             qpos_goal=letgo_goal,
             qpos_start=None,
             timeout=5.0,
@@ -154,7 +154,7 @@ class MotionPrimitives:
             planner="RRT"
         )
 
-        if not self._exec_path(letgo_path):
+        if not self.waypoint_plan(letgo_path):
             print(f"[Letting Gooo]: planning failed for motion involving releasing grasped cube {cube1}")
             return False
 
@@ -170,7 +170,7 @@ class MotionPrimitives:
         move_away_goal = np.array(stack_goal, dtype=float)
 
         # Gripper stays open
-        move_away_path = PlannerInterface.plan_path(
+        move_away_path = self.planInterface.plan_path(
             qpos_goal=move_away_goal,
             qpos_start=None,
             timeout=5.0,
@@ -180,7 +180,7 @@ class MotionPrimitives:
             planner="RRT"
         )
 
-        if not self._exec_path(move_away_path):
+        if not self.waypoint_plan(move_away_path):
             print(f"[Moving Away]: planning failed for motion involving moving away from {cube1}")
             return False
 

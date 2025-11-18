@@ -26,7 +26,7 @@ def get_block_pos(block_color: str, BlocksState: Dict[str, Any]) -> np.array:
 
     return block_position
 
-if __name__ == "main":
+if __name__ == "__main__":
     # Ensure Genesis is initialized before building scenes
     if len(sys.argv) > 1 and sys.argv[1] == "gpu":
         gs.init(backend=gs.gpu, logging_level='Warning', logger_verbose_time=False)
