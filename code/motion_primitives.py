@@ -24,7 +24,7 @@ class MotionPrimitives:
         return builder.get_block_pos(cube, self.blocks_state)
 
     def waypoint_plan(self, path):
-        """Execute a list of waypoints."""
+        
         if not path:
             return False
         for waypoint in path:
@@ -34,9 +34,6 @@ class MotionPrimitives:
         return True
 
     def pick_up(self, cube: str) -> bool:
-        """
-        Simple pick-up: pre-grasp -> move down -> close gripper -> lift.
-        """
       
         cube_pos = self.get_cube_pos(cube)
         x_cube, y_cube, z_cube = float(cube_pos[0]), float(cube_pos[1]), float(cube_pos[2])
@@ -133,9 +130,7 @@ class MotionPrimitives:
         return True
 
     def stack(self, cube1: str, cube2: str) -> bool:
-        """
-        Stack cube1 (currently held) on top of cube2.
-        """
+    
         that_cube = self.blocks_state[cube2]
         cube2_pos = self.get_cube_pos(cube2)
 
@@ -232,14 +227,7 @@ class MotionPrimitives:
 
 
     def parse_symbolic_plan(self, plan):
-        """
-        Parses a symbolic plan into a sequence of motion primitives.
-
-        Args:
-            plan: A list of symbolic actions.
-        Returns:
-            A list of motion primitives and their arguments.
-        """
+     
         string2action = {
             'pick-up': self.pick_up,
             'stack': self.stack,
