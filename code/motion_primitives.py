@@ -260,20 +260,11 @@ class MotionPrimitives:
         with open(input_file, 'r') as file:
             plan = file.read()
 
-    actions = parse_symbolic_plan(plan_str)
-
-    for name, args in actions:
-        if name == "pick-up":
-            # args: ["r", "magenta"] – we use the cube color name with first letter
-            cube = args[1][0]  # or adapt to your convention
-            mp.pick_up(cube)
-        elif name == "stack":
-            # args: ["r", "magenta", "cyan"]
-            top = args[1][0]
-            bottom = args[2][0]
-            mp.stack(top, bottom)
-        else:
-            print(f"[execute_symbolic_plan] Unknown symbolic action: {name} {args}")
+        actions = self.parse_symbolic_plan(plan)
+        for i in range(len(actions)):
+            action, args = actions[i]
+            cubes = [blockstate[arg] for arg in args]
+            action(*cubes)
 
 
 if __name__ == "__main__":
