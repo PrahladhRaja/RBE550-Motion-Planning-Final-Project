@@ -189,40 +189,40 @@ class MotionPrimitives:
         return True
 
 
-	def parse_symbolic_plan(plan):
-	    """
-	    Parses a symbolic plan into a sequence of motion primitives.
+    def parse_symbolic_plan(self, plan):
+        """
+        Parses a symbolic plan into a sequence of motion primitives.
 
-	    Args:
-	        plan: A list of symbolic actions.
-	    Returns:
-	        A list of motion primitives and their arguments.
-	    """
-	    string2action = {
-	        'pick-up': self.pick_up,
-	        'stack': self.stack,
-	        'unstack': self.unstack
-	        }
+        Args:
+            plan: A list of symbolic actions.
+        Returns:
+            A list of motion primitives and their arguments.
+        """
+        string2action = {
+            'pick-up': self.pick_up,
+            'stack': self.stack,
+            # 'unstack': self.unstack
+            }
 
-	    cleaned_plan = plan.replace('(', '').replace(')', '')
-	    steps = cleaned_plan.split('\n')
-	    actions = []
-	    for step in steps:
-	        step_cleaned = step.split()
-	        primative = string2action[step_cleaned[0]]
-	        args = [color[0] for color in step_cleaned[2:]]
-	        actions.append((primative, args))
-	    return actions
+        cleaned_plan = plan.replace('(', '').replace(')', '')
+        steps = cleaned_plan.split('\n')
+        actions = []
+        for step in steps:
+            step_cleaned = step.split()
+            primative = string2action[step_cleaned[0]]
+            args = [color[0] for color in step_cleaned[2:]]
+            actions.append((primative, args))
+        return actions
 
-	def execute_symbolic_plan(input_file, blockstate):
-	    with open(file_path, 'r') as file:
-	        plan = file.read()
+    def execute_symbolic_plan(self, input_file, blockstate):
+        with open(input_file, 'r') as file:
+            plan = file.read()
 
-	    actions = self.parse_symbolic_plan(plan)
-	    for i in range(len(actions))
-	        action, args = actions[i]
-	        cubes = blockstate[args]
-	        action(*cubes)
+        actions = self.parse_symbolic_plan(plan)
+        for i in range(len(actions)):
+            action, args = actions[i]
+            cubes = blockstate[args]
+            action(*cubes)
 
 if __name__ == "__main__":
     test_plan = """(pick-up r magenta)
@@ -234,9 +234,9 @@ if __name__ == "__main__":
     (pick-up r red)
     (stack r red green)"""
     
-    actions = parse_symbolic_plan(test_plan)
-    for action in actions:
-        print(action)
+    # actions = parse_symbolic_plan(test_plan)
+    # for action in actions:
+    #     print(action)
 
 
 
