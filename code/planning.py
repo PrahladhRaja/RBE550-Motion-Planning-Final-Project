@@ -39,18 +39,23 @@ class PlannerInterface:
     def diagnose_valid_violation(self, state):
         # set robot to the candidate start and check collisions / joint violations
         self.robot.set_qpos(self._ompl_state_to_tensor(state))
-        print(self.robot.get_qpos())
+        print(f"[Robots current q pos]: {self.robot.get_qpos()}")
         collision_pairs = self.robot.detect_collision()
         if collision_pairs.any() and len(collision_pairs) > 0:
             bad_links = set()
             for a, b in collision_pairs:
                 # print(self.scene.rigid_solver.geoms[a])
-                print(self.scene.rigid_solver.geoms[a].link.name)
                 # print(self.scene.rigid_solver.geoms[b])
-                print(self.scene.rigid_solver.geoms[b].link.name)
+                name_a = self.scene.rigid_solver.geoms[a].link.name
+                name_b = self.scene.rigid_solver.geoms[b].link.name
+                print(name_a)
+                print(name_b)
                 bad_links.add(self.scene.rigid_solver.geoms[a].link.name)
                 bad_links.add(self.scene.rigid_solver.geoms[b].link.name)
             gs.logger.warning(f"State causes collisions between links: {sorted(bad_links)}")
+        else:
+            print(f"[Validating State]: The State position has no collisions!")
+
 
     def plan_path(
             self,
@@ -136,6 +141,10 @@ class PlannerInterface:
         # ensure we use numpy float64 for bounds
         q_limit_lower = np.asarray(self.robot.q_limit[0], dtype=float)
         q_limit_upper = np.asarray(self.robot.q_limit[1], dtype=float)
+
+        #print(f"[Bound Check]: This robots lower join limit is:{q_limit_lower}")
+        #print(f"[Bound Check]: This robots upper join limit is:{q_limit_upper}")
+
 
         ######### setup OMPL ##########
         space = ob.RealVectorStateSpace(self.robot.n_qs)
