@@ -9,6 +9,10 @@
      (handempty ?r - robot)
      (holding ?r - robot ?x - cube)
      (ontower ?x - cube ?t - tower)
+
+     (adjacent-left ?x - cube ?y - cube)
+     (adjacent-right ?x - cube ?y - cube)
+     (adjacent-top ?x - cube ?y - cube)
      )
 
     (:action pick-up
@@ -44,6 +48,33 @@
              (not (on ?x ?y))
              (not (clear ?x))
              (not (handempty ?r))))
+
+    (:action adjacent-left
+    :parameters (?r - robot ?x - cube ?y - cube)
+    :precondition (and(holding ?r ?x) (ontable ?y))
+    :effect (and (adjacent-left ?x ?y)
+                 (ontable ?x)
+                 (clear ?x)
+                 (handempty ?r)
+                 (not (holding ?r ?x))))
+
+    (:action adjacent-right
+    :parameters (?r - robot ?x - cube ?y - cube)
+    :precondition (and(holding ?r ?x)(ontable ?y))
+    :effect (and (adjacent-right ?x ?y)
+                 (ontable ?x)
+                 (clear ?x)
+                 (handempty ?r)
+                 (not (holding ?r ?x))))
+
+    (:action adjacent-top
+    :parameters (?r - robot ?x - cube ?y - cube)
+    :precondition (and (holding ?r ?x) (ontable ?y))
+    :effect (and (adjacent-top ?x ?y)
+                 (ontable ?x)
+                 (clear ?x)
+                 (handempty ?r)
+                 (not (holding ?r ?x))))
              
              
 )

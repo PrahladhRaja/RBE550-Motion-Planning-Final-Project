@@ -147,3 +147,63 @@ def create_scene_stacked() -> Tuple[Any, Any, Dict[str, Any], Any]:
     blocks_state: Dict[str, Any] = {"r": cubeR, "g": cubeG, "b": cubeB, "y": cubeY, "m": cubeM, "c": cubeC}
 
     return scene, franka, blocks_state
+
+def goal3tower()->tuple[Any,Any,dict[Any, str], Any]:
+    scene = _build_base_scene()
+
+    plane = scene.add_entity(gs.morphs.Plane())
+
+    startx, starty, _ = _rand_xy((0.45, 0.0, 0.02), noise=0.2) 
+    cubeR = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.02)),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+    )
+    cubeG = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.06)),
+        surface=gs.options.surfaces.Plastic(color=(0.0, 1.0, 0.0)),
+    )
+    cubeB = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.10)),
+        surface=gs.options.surfaces.Plastic(color=(0.0, 0.0, 1.0)),
+    )
+    cubeY = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.14)),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 1.0, 0.0)),
+    )
+
+    cubeM = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.18)),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0, 1.0)),
+    )
+
+    cubeC = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
+        surface=gs.options.surfaces.Plastic(color=(0, 1.0, 1.0)),
+    )
+
+    cubeR2 = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+    )
+
+    cubeG2= scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
+        surface=gs.options.surfaces.Plastic(color=(0, 1.0, 0.0)),
+    )
+
+    cubeB2 = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
+        surface=gs.options.surfaces.Plastic(color=(0, 0.0, 1.0)),
+    )
+
+    franka_raw = scene.add_entity(gs.morphs.MJCF(file="xml/franka_emika_panda/panda.xml"))
+    franka = RobotAdapter(franka_raw, scene)
+    scene.build()
+
+    franka.set_qpos(np.array([0.0, -0.5, -0.2, -1.0, 0.0, 1.00, 0.5, 0.02, 0.02]))
+
+    _elevate_robot_base(franka)
+
+    blocks_state: Dict[str, Any] = {"r": cubeR, "g": cubeG, "b": cubeB, "y": cubeY, "m": cubeM, "c": cubeC, "r2":cubeR2, "g2":cubeG2, "b2":cubeB2}
+
+    return scene, franka, blocks_state

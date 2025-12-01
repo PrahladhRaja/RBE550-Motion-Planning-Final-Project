@@ -1,0 +1,8 @@
+(pick-up r red)
+(stack r red green)
+(pick-up r blue)
+(stack r blue red)
+(pick-up r yellow)
+(stack r yellow blue)
+(pick-up r magenta)
+(stack r magenta yellow)
