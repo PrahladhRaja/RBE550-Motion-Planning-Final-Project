@@ -1,8 +1,11 @@
 import sys
 import numpy as np
 import genesis as gs
+import random as rand
+import math
 from typing import Any, Dict, Tuple
 from planning import PlannerInterface
+
 
 class MotionPrimitives:
     def __init__(self, robot, blocks_state, scene) -> None:
@@ -17,6 +20,12 @@ class MotionPrimitives:
         self.GRIPPER_OPEN = 0.035
         self.GRIPPER_CLOSE = 0.020
         self.LINK_NAME = "hand"
+
+        
+
+
+        
+
 
     def get_block_pos(sef, block_color: str, BlocksState: Dict[str, Any]) -> np.array:
         
@@ -258,6 +267,86 @@ class MotionPrimitives:
 
         print(f"[Moving Away]: Successfully distanced ourselves from block {cube2}")
         return True
+    
+    def get_clear_spot(self, place_range)-> np.ndarray:
+        clear_buffer = 0.06
+        clear_spot_found = False
+
+        place_x = -100
+        place_y = -100
+        while not clear_spot_found:
+            place_x = rand.uniform(place_range[0][0], place_range[0][1])
+            place_y = rand.uniform(place_range[1][0], place_range[1][1])
+
+            for cube in self.blocks_state.keys():
+                cube_x, cube_y, _ = self.get_cube_pos(cube)
+                if math.sqrt((place_x-cube_x)**2+(place_y-cube_y)**2) <= clear_buffer:
+                    break
+
+        goal_pos = np.array([place_x, place_y, self.Z_DISTANCE_GAP+0.02], dtype=float)
+
+        return goal_pos
+
+
+
+    def unstack(self, cube1:str, cube2:str) -> bool:
+        self.pick_up(cube1)
+
+        x, y, z = self.get_cube_pos(cube2)
+
+        # range to search for clear spot to put down 
+        place_range = [[0.1, 0.7], 
+                       [0.1, y-0.06]]
+        
+        goal_pos = self.get_clear_spot(place_range)
+
+        if goal_pos[0] < -10:
+            print(f"[unstack] failed to find clear spot to place down cube")
+            return False
+        
+        ee_link = self.robot.get_link(self.LINK_NAME)
+
+        quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
+
+        place_goal = self.robot.inverse_kinematics(link=ee_link, pos=goal_pos, quat=quat)
+        if place_goal is None:
+            print(f"[adjacent] IK failed for pre-place of cube {cube1}")
+            return False
+        
+        place_goal = np.array(place_goal, dtype=float)
+        place_goal[-2:] = self.GRIPPER_CLOSE 
+
+        pre_path = self.planInterface.plan_path(
+            qpos_goal=place_goal,
+            qpos_start=None,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=300,
+            attached_object=self.blocks_state.get(cube1),
+            planner="RRTstar",
+        )
+
+        if not self.waypoint_plan(pre_path, cube1):
+            print(f"[unstack]: planning failed for motion involving initial cube grasped {cube1}")
+            return False
+
+        print(f"[unstack]: Reached clear position for place down")
+
+        # Release the block
+        release_goal = place_goal.copy()
+        release_goal[-2:] = self.GRIPPER_OPEN
+        self.robot.control_dofs_position(release_goal)
+
+        # Retreat
+        retreat_goal = release_goal.copy()
+        retreat_goal[2] += 0.04
+        self.robot.control_dofs_position(retreat_goal)
+
+        print(f"[unstack] Successfully placed cube {cube1}")
+
+        return True
+
+
 
 
     def adjacent(self, cube1: str, cube2: str, side: str)-> bool:
