@@ -19,6 +19,22 @@ else:
 scene, builder, BlocksState = create_scene_6blocks()
 #scene, franka, BlocksState = create_scene_stacked()
 
+
+# After scene is built and links/geoms exist update friction parameters:
+right_finger = builder.get_link("right_finger")
+left_finger  = builder.get_link("left_finger")
+
+for geom in right_finger.geoms:
+    geom.set_friction(2.0)
+
+for geom in left_finger.geoms:
+    geom.set_friction(2.0)
+
+for cube in BlocksState.values():
+    for geom in cube.geoms:
+        geom.set_friction(2.0)
+
+
 # set control gains
 # Note: the following values are tuned for achieving best behavior with builder
 # Typically, each new robot would have a different set of parameters.
@@ -33,6 +49,8 @@ builder.set_dofs_force_range(
     np.array([-87, -87, -87, -87, -12, -12, -12, -100, -100]),
     np.array([87, 87, 87, 87, 12, 12, 12, 100, 100]),
 )
+
+
 
 '''
 # move to a fixed pre-grasp pose
@@ -70,9 +88,9 @@ if (run_symbolic_taskplan()):
     print("Moving to execute the symbolic plan accordingly...")
     
     solve_motion = MotionPrimitives(builder, BlocksState, scene)
-    solve_motion.execute_symbolic_plan("../pddl/blocksworld_problem.pddl.soln", BlocksState)
+    solve_motion.execute_symbolic_plan("../pddl/goal3_blocksworld_problem.pddl.soln", BlocksState)
     #builder_path = solve_motion.complete_waypoint_path
-    solve_motion.waypoint_plan()
+    #solve_motion.waypoint_plan()
 
 '''
 # gripper open pos
