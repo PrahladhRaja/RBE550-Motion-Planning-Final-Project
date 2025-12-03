@@ -17,7 +17,7 @@ else:
 
 # build the scene using the factory
 scene, builder, BlocksState = create_scene_6blocks()
-#scene, franka, BlocksState = create_scene_stacked()
+# scene, builder, BlocksState = create_scene_stacked()
 
 # set control gains
 # Note: the following values are tuned for achieving best behavior with builder
