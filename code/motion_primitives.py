@@ -25,8 +25,6 @@ class MotionPrimitives:
         self.GRIPPER_CLOSE = 0.0167 #Lower means tighter grip
         self.LINK_NAME = "hand"
 
-        
-
 
 
     def get_block_pos(sef, block_color: str, BlocksState: Dict[str, Any]) -> np.array:
