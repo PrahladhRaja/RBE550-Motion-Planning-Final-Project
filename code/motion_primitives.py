@@ -341,7 +341,7 @@ class MotionPrimitives:
         )
 
         if not self.waypoint_plan(pre_path, cube1):
-            print(f"[unstack]: planning failed for motion involving initial cube grasped {cube1}")
+            print(f"[unstack]: planning failed for placing down {cube1}")
             return False
 
         print(f"[unstack]: Reached clear position for place down")
@@ -352,8 +352,10 @@ class MotionPrimitives:
         self.robot.control_dofs_position(release_goal)
 
         # Retreat
-        retreat_goal = release_goal.copy()
-        retreat_goal[2] += 0.04
+        retreat_goal_pos = goal_pos.copy()
+        retreat_goal_pos[2] += 0.04
+
+        retreat_goal = self.robot.inverse_kinematics(link=ee_link, pos=retreat_goal_pos, quat=quat)
         self.robot.control_dofs_position(retreat_goal)
 
         print(f"[unstack] Successfully placed cube {cube1}")
@@ -529,13 +531,14 @@ class MotionPrimitives:
         return actions
 
     def iterative_plan_and_execute(self, base_problem_file, blockstate):
-        solution_file = base_problem_file[:-5] + "_full.pddl.soln"
+        full_problem_file = base_problem_file[:-5] + "_full.pddl"
+        solution_file = full_problem_file + ".soln"
 
         while True:
-            # Before each action extract predicates and run task polanner
+            # Before each action extract predicates and run task planner
             preds = lift_scene_to_predicates(self.robot, self.blocks_state)
             self.preds_to_pddl(preds, base_problem_file)
-            run_symbolic_taskplan()
+            run_symbolic_taskplan(full_problem_file)
 
             # With each new task plan, execute first action
             with open(solution_file, 'r') as file:

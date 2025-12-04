@@ -5,7 +5,20 @@
     red green blue yellow magenta cyan - cube
     tower1 - tower)
 
-/
+(:init
+(ontable green)
+(ontable blue)
+(ontable yellow)
+(ontable magenta)
+(ontable cyan)
+(clear red)
+(clear green)
+(clear blue)
+(clear yellow)
+(clear magenta)
+(clear cyan)
+(handempty r)
+)
     (:goal (and
       (clear magenta)
 

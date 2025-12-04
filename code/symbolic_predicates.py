@@ -4,6 +4,7 @@ import numpy as np
 EPS = 0.01  # meters
 
 def lift_scene_to_predicates(robot, blocks_state):
+    print("block_state", blocks_state)
     """
     Returns (objects, facts) for BlocksWorld:
       objects: ['red','green','blue','yellow','magenta','cyan']
@@ -62,4 +63,5 @@ def lift_scene_to_predicates(robot, blocks_state):
     else:
         facts.append(f"(holding {name_map[held]})")
 
+    print(facts)
     return facts
