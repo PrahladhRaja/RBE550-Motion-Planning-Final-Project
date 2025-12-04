@@ -7,6 +7,7 @@ import gc
 from symbolic_taskplan import run_symbolic_taskplan
 from scenes import create_scene_6blocks, create_scene_stacked
 from motion_primitives import MotionPrimitives
+from symbolic_predicates import lift_scene_to_predicates
 
 
 # Ensure Genesis is initialized before building scenes
@@ -83,12 +84,15 @@ magenta_block_pos = get_block_pos("m", BlocksState)
 cyan_block_pos = get_block_pos("c", BlocksState)
 '''
 
-if (run_symbolic_taskplan()):
-    print("Successfully solved the PDDL problem in parts.")
-    print("Moving to execute the symbolic plan accordingly...")
+solve_motion = MotionPrimitives(builder, BlocksState, scene)
+solve_motion.iterative_plan_and_execute("../pddl/blocksworld_problem.pddl", BlocksState)
+
+# if (run_symbolic_taskplan()):
+#     print("Successfully solved the PDDL problem in parts.")
+#     print("Moving to execute the symbolic plan accordingly...")
     
-    solve_motion = MotionPrimitives(builder, BlocksState, scene)
-    solve_motion.execute_symbolic_plan("../pddl/goal3_blocksworld_problem.pddl.soln", BlocksState)
+#     solve_motion = MotionPrimitives(builder, BlocksState, scene)
+#     solve_motion.iterative_plan_and_execute("../pddl/goal2_blocksworld_problem.pddl", BlocksState)
     #builder_path = solve_motion.complete_waypoint_path
     #solve_motion.waypoint_plan()
 
