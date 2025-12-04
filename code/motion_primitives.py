@@ -5,9 +5,6 @@ import random as rand
 import math
 from typing import Any, Dict, Tuple
 from planning import PlannerInterface
-from symbolic_predicates import lift_scene_to_predicates
-from symbolic_taskplan import run_symbolic_taskplan
-
 
 
 class MotionPrimitives:
@@ -27,6 +24,8 @@ class MotionPrimitives:
 
         
 
+
+        
 
 
     def get_block_pos(sef, block_color: str, BlocksState: Dict[str, Any]) -> np.array:
@@ -296,11 +295,10 @@ class MotionPrimitives:
                 if math.sqrt((place_x-cube_x)**2+(place_y-cube_y)**2) <= clear_buffer:
                     break
 
-                clear_spot_found = True
-
         goal_pos = np.array([place_x, place_y, self.Z_DISTANCE_GAP+0.02], dtype=float)
 
         return goal_pos
+
 
 
     def unstack(self, cube1:str, cube2:str) -> bool:
@@ -483,24 +481,6 @@ class MotionPrimitives:
 
     def adjacent_top(self, cube1: str, cube2: str) -> bool:
         return self.adjacent(cube1, cube2, side="top")
-    
-    def preds_to_pddl(self, preds, base_problem_file):
-        with open(base_problem_file, 'r') as file:
-            contents = file.read()
-            init_and_goal = contents.split('/')
-        
-        print(init_and_goal)
-        curr_state = "(:init\n"
-        for pred in preds:
-            curr_state+= pred + "\n"
-        curr_state+= ")"
-
-        full_text = init_and_goal[0] + curr_state + init_and_goal[1]
-        full_problem_file = base_problem_file[:-5] +  "_full.pddl"
-
-        with open(full_problem_file, 'w') as file:
-            file.write(full_text)
-
 
 
     def parse_symbolic_plan(self, plan):
@@ -511,7 +491,7 @@ class MotionPrimitives:
             'adjacent-left': self.adjacent_left,
             'adjacent-right': self.adjacent_right,
             'adjacent-top': self.adjacent_top,
-            'unstack': self.unstack
+            # 'unstack': self.unstack
             }
 
         cleaned_plan = plan.replace('(', '').replace(')', '')
@@ -528,24 +508,14 @@ class MotionPrimitives:
             actions.append((primative, args))
         return actions
 
-    def iterative_plan_and_execute(self, base_problem_file, blockstate):
-        solution_file = base_problem_file[:-5] + "_full.pddl.soln"
-
-        while True:
-            # Before each action extract predicates and run task polanner
-            preds = lift_scene_to_predicates(self.robot, self.blocks_state)
-            self.preds_to_pddl(preds, base_problem_file)
-            run_symbolic_taskplan()
-
-            # With each new task plan, execute first action
-            with open(solution_file, 'r') as file:
-                plan = file.read()
-
-            actions = self.parse_symbolic_plan(plan)
-            if not len(actions):
-                break
-
-            action, args = actions[0]
+    def execute_symbolic_plan(self, input_file, blockstate):
+        with open(input_file, 'r') as file:
+            plan = file.read()
+        print(plan)
+        actions = self.parse_symbolic_plan(plan)
+        for i in range(len(actions)):
+            action, args = actions[i]
+            
             action(*args)
 
 

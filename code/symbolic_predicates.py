@@ -3,7 +3,7 @@ import numpy as np
 
 EPS = 0.01  # meters
 
-def lift_scene_to_predicates(robot, blocks_state):
+def lift_scene_to_predicates(scene, robot, blocks_state):
     """
     Returns (objects, facts) for BlocksWorld:
       objects: ['red','green','blue','yellow','magenta','cyan']
@@ -19,7 +19,7 @@ def lift_scene_to_predicates(robot, blocks_state):
         return np.array([0.04, 0.04, 0.04])
 
     # positions of cube centers
-    pos = {k: np.array(blocks_state[k].get_pos()) for k in keys}
+    pos = {k: np.array(blocks_state[k].pos) for k in keys}
     h = {k: size_of(k)[2] for k in keys}
     top_z  = {k: pos[k][2] + 0.5*h[k] for k in keys}
     base_z = {k: pos[k][2] - 0.5*h[k] for k in keys}
@@ -58,8 +58,8 @@ def lift_scene_to_predicates(robot, blocks_state):
     # hand state
     held = getattr(robot, "holding", None) or None
     if held is None:
-        facts.append("(handempty r)")
+        facts.append("(handempty)")
     else:
         facts.append(f"(holding {name_map[held]})")
 
-    return facts
+    return objs, facts

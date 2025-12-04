@@ -3,7 +3,7 @@ import subprocess, re, sys
 
 def run_symbolic_taskplan() -> bool:
     try:
-        domain, problem = "../pddl/blocksworld_domain.pddl", "../pddl/blocksworld_problem_full.pddl"
+        domain, problem = "blocksworld_domain.pddl", "blocksworld_problem.pddl"
         cmd = ["python3","-m","pyperplan","-s","astar","-H","hff",domain,problem]
         p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
