@@ -153,47 +153,53 @@ def goal3tower()->tuple[Any,Any,dict[Any, str], Any]:
 
     plane = scene.add_entity(gs.morphs.Plane())
 
-    startx, starty, _ = _rand_xy((0.45, 0.0, 0.02), noise=0.2) 
+    posR = _rand_xy((0.65, 0.0, 0.02))
+    posG = _rand_xy((0.65, 0.2, 0.02))
+    posB = _rand_xy((0.65, 0.4, 0.02))
+    posR2 = _rand_xy((0.45, -0.2, 0.02))
+    posG2 = _rand_xy((0.65, -0.2, 0.02))
+    posB2 = _rand_xy((0.45, -0.4, 0.02))
+    posY = _rand_xy((0.45, 0.0, 0.02))
+    posM = _rand_xy((0.45, 0.2, 0.02))
+    posC = _rand_xy((0.45, 0.4, 0.02))
+
     cubeR = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.02)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posR),
         surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
     )
     cubeG = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.06)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posG),
         surface=gs.options.surfaces.Plastic(color=(0.0, 1.0, 0.0)),
     )
     cubeB = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.10)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posB),
+        surface=gs.options.surfaces.Plastic(color=(0.0, 0.0, 1.0)),
+    )
+
+    cubeR2 = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posR2),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+    )
+    cubeG2 = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posG2),
+        surface=gs.options.surfaces.Plastic(color=(0.0, 1.0, 0.0)),
+    )
+    cubeB2 = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posB2),
         surface=gs.options.surfaces.Plastic(color=(0.0, 0.0, 1.0)),
     )
     cubeY = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.14)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=posY),
         surface=gs.options.surfaces.Plastic(color=(1.0, 1.0, 0.0)),
     )
-
     cubeM = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.18)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=posM),
         surface=gs.options.surfaces.Plastic(color=(1.0, 0, 1.0)),
     )
 
     cubeC = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=posC),
         surface=gs.options.surfaces.Plastic(color=(0, 1.0, 1.0)),
-    )
-
-    cubeR2 = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
-        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
-    )
-
-    cubeG2= scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
-        surface=gs.options.surfaces.Plastic(color=(0, 1.0, 0.0)),
-    )
-
-    cubeB2 = scene.add_entity(
-        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos=(startx, starty, 0.22)),
-        surface=gs.options.surfaces.Plastic(color=(0, 0.0, 1.0)),
     )
 
     franka_raw = scene.add_entity(gs.morphs.MJCF(file="xml/franka_emika_panda/panda.xml"))

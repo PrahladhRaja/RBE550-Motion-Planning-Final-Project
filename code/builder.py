@@ -5,7 +5,7 @@ import genesis as gs
 from typing import Any, Dict, Tuple
 import gc
 from symbolic_taskplan import run_symbolic_taskplan
-from scenes import create_scene_6blocks, create_scene_stacked
+from scenes import create_scene_6blocks, create_scene_stacked, goal3tower
 from motion_primitives import MotionPrimitives
 
 
@@ -16,8 +16,9 @@ else:
     gs.init(backend=gs.cpu, logging_level='Warning', logger_verbose_time=False)
 
 # build the scene using the factory
-scene, builder, BlocksState = create_scene_6blocks()
+# scene, builder, BlocksState = create_scene_6blocks()
 # scene, builder, BlocksState = create_scene_stacked()
+scene, builder, BlocksState = goal3tower()
 
 
 # After scene is built and links/geoms exist update friction parameters:
@@ -84,7 +85,7 @@ cyan_block_pos = get_block_pos("c", BlocksState)
 '''
 
 if (run_symbolic_taskplan()):
-    print("Successfully solved the PDDL problem in parts.")
+    print("Successfully solved the PDDL problem in parts.") 
     print("Moving to execute the symbolic plan accordingly...")
     
     solve_motion = MotionPrimitives(builder, BlocksState, scene)
