@@ -35,3 +35,6 @@ html/
 *.7z
 *.bak
 *.swp
+
+# python
+__pycache__/
