@@ -3,23 +3,22 @@ import numpy as np
 
 EPS = 0.01  # meters
 
-def lift_scene_to_predicates(scene, robot, blocks_state):
+def lift_scene_to_predicates(robot, blocks_state):
     """
     Returns (objects, facts) for BlocksWorld:
       objects: ['red','green','blue','yellow','magenta','cyan']
       facts:   ['(on red green)', '(ontable blue)', '(clear red)', '(handempty)']
     """
     # Map short keys to canonical names
-    name_map = {'r':'red','g':'green','b':'blue','y':'yellow','m':'magenta','c':'cyan'}
+    name_map = {'r':'red','g':'green','b':'blue','y':'yellow','m':'magenta','c':'cyan','r2':'red2','g2':'green2','b2':'blue2'}
     keys = list(blocks_state.keys())
-    objs = [name_map[k] for k in keys]
 
     def size_of(k):
         # all cubes are 0.04 per scene setup
         return np.array([0.04, 0.04, 0.04])
 
     # positions of cube centers
-    pos = {k: np.array(blocks_state[k].pos) for k in keys}
+    pos = {k: np.array(blocks_state[k].get_pos()) for k in keys}
     h = {k: size_of(k)[2] for k in keys}
     top_z  = {k: pos[k][2] + 0.5*h[k] for k in keys}
     base_z = {k: pos[k][2] - 0.5*h[k] for k in keys}
@@ -32,7 +31,7 @@ def lift_scene_to_predicates(scene, robot, blocks_state):
         return abs(x1-x2) <= s and abs(y1-y2) <= s
 
     facts = []
-
+    holding = None
     # ON / ONTABLE
     for x in keys:
         placed_on = None
@@ -44,6 +43,8 @@ def lift_scene_to_predicates(scene, robot, blocks_state):
                 break
         if placed_on is None and abs(base_z[x]-table_z) < EPS:
             facts.append(f"(ontable {name_map[x]})")
+        elif placed_on is None:
+            holding = x
 
     # CLEAR
     for y in keys:
@@ -52,14 +53,14 @@ def lift_scene_to_predicates(scene, robot, blocks_state):
             if x == y: continue
             if overlaps_xy(x,y) and abs(base_z[x]-top_z[y]) < EPS:
                 clear = False; break
-        if clear:
+        if clear and y != holding:
             facts.append(f"(clear {name_map[y]})")
 
     # hand state
-    held = getattr(robot, "holding", None) or None
-    if held is None:
-        facts.append("(handempty)")
+    if holding is None:
+        facts.append("(handempty r)")
     else:
-        facts.append(f"(holding {name_map[held]})")
+        facts.append(f"(holding r {name_map[holding]})")
 
-    return objs, facts
+    # print(facts)
+    return facts

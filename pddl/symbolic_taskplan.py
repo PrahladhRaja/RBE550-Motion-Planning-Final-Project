@@ -10,6 +10,7 @@ for line in p.stdout.splitlines():
     m = re.match(r"^\s*\d+:\s*\(([^)]+)\)", line.strip().lower())
     if m:
         steps.append(m.group(1))          # e.g. "pick-up r1 a"
+print("Plan found:")
 
 if not steps:
     print(p.stdout)                       # show output if no steps parsed
