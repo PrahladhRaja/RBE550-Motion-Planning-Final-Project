@@ -17,8 +17,8 @@ else:
     gs.init(backend=gs.cpu, logging_level='Warning', logger_verbose_time=False)
 
 # build the scene using the factory
-scene, builder, BlocksState = create_scene_6blocks()
-# scene, builder, BlocksState = create_scene_stacked()
+# scene, builder, BlocksState = create_scene_6blocks()
+scene, builder, BlocksState = create_scene_stacked()
 
 
 # After scene is built and links/geoms exist update friction parameters:
@@ -85,7 +85,7 @@ cyan_block_pos = get_block_pos("c", BlocksState)
 '''
 
 solve_motion = MotionPrimitives(builder, BlocksState, scene)
-solve_motion.iterative_plan_and_execute("../pddl/blocksworld_problem.pddl", BlocksState)
+solve_motion.iterative_plan_and_execute("../pddl/goal2_blocksworld_problem.pddl", BlocksState)
 
 # if (run_symbolic_taskplan()):
 #     print("Successfully solved the PDDL problem in parts.")

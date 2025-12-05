@@ -163,8 +163,8 @@ class MotionPrimitives:
         cube2_pos = self.get_cube_pos(cube2)
 
         target_x = float(cube2_pos[0])
-        target_y = float(cube2_pos[1])
-        target_z = float(cube2_pos[2])
+        target_y = float(cube2_pos[1])-0.02
+        target_z = float(cube2_pos[2])+0.3
         target_cube_pos = np.array(
             [target_x, target_y, target_z + self.Z_DISTANCE_GAP + 0.023], dtype=float
         )
@@ -307,8 +307,8 @@ class MotionPrimitives:
         x, y, z = self.get_cube_pos(cube2)
 
         # range to search for clear spot to put down 
-        place_range = [[0.1, 0.7], 
-                       [0.1, y-0.06]]
+        place_range = [[0.4, 0.7], 
+                       [0.1, 0.2]]
         
         goal_pos = self.get_clear_spot(place_range)
 
@@ -322,7 +322,7 @@ class MotionPrimitives:
 
         place_goal = self.robot.inverse_kinematics(link=ee_link, pos=goal_pos, quat=quat)
         if place_goal is None:
-            print(f"[adjacent] IK failed for pre-place of cube {cube1}")
+            print(f"[unstack] IK failed for pre-place of cube {cube1}")
             return False
         
         place_goal = np.array(place_goal, dtype=float)
@@ -348,13 +348,17 @@ class MotionPrimitives:
         release_goal = place_goal.copy()
         release_goal[-2:] = self.GRIPPER_OPEN
         self.robot.control_dofs_position(release_goal)
+        for _ in range(20):
+            self.scene.step()
 
         # Retreat
         retreat_goal_pos = goal_pos.copy()
-        retreat_goal_pos[2] += 0.04
+        retreat_goal_pos[2] += 0.15
 
         retreat_goal = self.robot.inverse_kinematics(link=ee_link, pos=retreat_goal_pos, quat=quat)
         self.robot.control_dofs_position(retreat_goal)
+        for _ in range(20):
+            self.scene.step()
 
         print(f"[unstack] Successfully placed cube {cube1}")
 
@@ -535,6 +539,8 @@ class MotionPrimitives:
         while True:
             # Before each action extract predicates and run task planner
             preds = lift_scene_to_predicates(self.robot, self.blocks_state)
+            print("------------------preds--------------")
+            print(preds)
             self.preds_to_pddl(preds, base_problem_file)
             run_symbolic_taskplan(full_problem_file)
 
