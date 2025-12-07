@@ -27,16 +27,12 @@ class MotionPrimitives:
         self.LINK_NAME = "hand"
 
         self.tower_base_pos = []
-        self.stack_count = 0
-
-        
-
-
-        
+        self.stack_count = 0   
 
 
     def get_block_pos(sef, block_color: str, BlocksState: Dict[str, Any]) -> np.array:
-        name_colors = {"r": "Red", "g": "Green", "b": "Blue", "y": "Yellow", "m": "Magenta", "c": "Cyan", "r2": "Red2", "g2": "Green2", "b2": "Blue2"}
+        name_colors = {"r": "Red", "g": "Green", "b": "Blue", "y": "Yellow", "m": "Magenta", "c": "Cyan", "r2": "Red2", "g2": "Green2", "b2": "Blue2", 'r3':'red3',
+                       'r4':'red4', 'r5':'red5', 'r6':'red6', 'r7':'red7', 'r8':'red8', 'r9':'red9', 'r10':'red10'}
         that_block = BlocksState[block_color]
         block_position = that_block.get_pos()
         print(f"{name_colors[block_color]} block position (x, y, z):", block_position)
@@ -60,8 +56,7 @@ class MotionPrimitives:
 
                 #new_cube_pose = finger_pose
                 #new_cube_pose[:3] += offset
-
-                #self.blocks_state.get(cube).set_pos(cube_pose)
+                self.blocks_state.get(cube).set_pos(cube_pose)
             waypoint = np.asarray(waypoint, dtype=np.float32)
             self.robot.control_dofs_position(waypoint)
             self.scene.step()
@@ -169,6 +164,8 @@ class MotionPrimitives:
             return False
 
         print(f"[pick_up] Finished pick-up of {cube}")
+        self.held_cube = cube
+
         return True
     
 
@@ -416,14 +413,10 @@ class MotionPrimitives:
         return True
 
 
-
-
-    def adjacent(self, cube1: str, cube2: str, side: str)-> bool:
-
+    def adjacent(self, cube1: str, cube2: str, side: str) -> bool:
         cube2_pos = self.get_cube_pos(cube2)
-        pos_x, pos_y, pos_z = float(cube2_pos[0]), float(cube2_pos[1]), float(cube2_pos[2])
+        pos_x, pos_y, pos_z = map(float, cube2_pos[:3])
 
-        #lateral offset for adjacent placement
         lateral_gap = 0.05
         dx, dy = 0.0, 0.0
         if side == "right":
@@ -431,34 +424,54 @@ class MotionPrimitives:
         elif side == "left":
             dy = -lateral_gap
         elif side == "top":
-            dx = lateral_gap     
+            dx = lateral_gap
         else:
             print(f"[adjacent] Unknown side '{side}', defaulting to 'right'")
             dy = lateral_gap
-        
-        pre_pos = np.array([pos_x + dx, pos_y + dy, pos_z + self.Z_DISTANCE_GAP],dtype=float)
-        quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
 
+        quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
         ee_link = self.robot.get_link(self.LINK_NAME)
 
-        pre_goal = self.robot.inverse_kinematics(link=ee_link, pos=pre_pos, quat=quat)
-        if pre_goal is None:
-            print(f"[adjacent] IK failed for pre-place of {cube1} next to {cube2}")
+        hover_z = max(pos_z + self.Z_DISTANCE_GAP + 0.15, 0.35)
+        hover_pos = np.array([pos_x, pos_y, hover_z], dtype=float)
+
+        hover_goal = self.robot.inverse_kinematics(link=ee_link, pos=hover_pos, quat=quat)
+        if hover_goal is None:
+            print(f"[adjacent] IK failed for high hover over {cube2}")
+            return False
+        hover_goal = np.array(hover_goal, dtype=float)
+        hover_goal[-2:] = self.GRIPPER_CLOSE
+
+        hover_path = self.planInterface.plan_path(
+            qpos_goal=hover_goal,
+            qpos_start=self.transitional_state,        
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=150,
+            attached_object=self.blocks_state.get(cube1),
+            planner="RRTConnect",
+        )
+        if not self.waypoint_plan(hover_path, cube1):
+            print(f"[adjacent] planning failed for high hover with {cube1}")
             return False
 
+        pre_pos = np.array([pos_x + dx, pos_y + dy, hover_z], dtype=float)
+        pre_goal = self.robot.inverse_kinematics(link=ee_link, pos=pre_pos, quat=quat)
+        if pre_goal is None:
+            print(f"[adjacent] IK failed for side hover of {cube1} near {cube2}")
+            return False
         pre_goal = np.array(pre_goal, dtype=float)
-        pre_goal[-2:] = self.GRIPPER_CLOSE 
+        pre_goal[-2:] = self.GRIPPER_CLOSE
 
         pre_path = self.planInterface.plan_path(
             qpos_goal=pre_goal,
-            qpos_start=None,
+            qpos_start=hover_goal,
             timeout=5.0,
             smooth_path=True,
-            num_waypoints=300,
+            num_waypoints=150,
             attached_object=self.blocks_state.get(cube1),
-            planner="RRTstar",
+            planner="RRTConnect",
         )
-
         if not self.waypoint_plan(pre_path, cube1):
             print(f"[adjacent] planning failed while moving {cube1} next to {cube2}")
             return False
@@ -468,26 +481,22 @@ class MotionPrimitives:
         place_pos = pre_pos.copy()
         place_pos[2] = pos_z + 0.02   
 
-        place_goal = self.robot.inverse_kinematics(
-            link=ee_link, pos=place_pos, quat=quat
-        )
+        place_goal = self.robot.inverse_kinematics(link=ee_link, pos=place_pos, quat=quat)
         if place_goal is None:
             print(f"[adjacent] IK failed for final place pose of {cube1}")
             return False
-
         place_goal = np.array(place_goal, dtype=float)
         place_goal[-2:] = self.GRIPPER_CLOSE
 
         place_path = self.planInterface.plan_path(
             qpos_goal=place_goal,
-            qpos_start=None,
+            qpos_start=pre_goal,
             timeout=5.0,
             smooth_path=True,
-            num_waypoints=150,
+            num_waypoints=120,
             attached_object=self.blocks_state.get(cube1),
-            planner="RRTstar",
+            planner="RRTConnect",
         )
-
         if not self.waypoint_plan(place_path, cube1):
             print(f"[adjacent] planning failed for lowering {cube1} next to {cube2}")
             return False
@@ -497,38 +506,35 @@ class MotionPrimitives:
         self.robot.control_dofs_position(release_goal)
         for _ in range(20):
             self.scene.step()
-
         print(f"[adjacent] Released {cube1} {side} of {cube2}")
 
         retreat_pos = place_pos.copy()
         retreat_pos[2] += self.Z_DISTANCE_GAP + 0.15
-
-        retreat_goal = self.robot.inverse_kinematics(
-            link=ee_link, pos=retreat_pos, quat=quat
-        )
+        retreat_goal = self.robot.inverse_kinematics(link=ee_link, pos=retreat_pos, quat=quat)
         if retreat_goal is None:
             print(f"[adjacent] IK failed for retreat after placing {cube1}")
             return False
-
         retreat_goal = np.array(retreat_goal, dtype=float)
         retreat_goal[-2:] = self.GRIPPER_OPEN
 
         retreat_path = self.planInterface.plan_path(
             qpos_goal=retreat_goal,
-            qpos_start=None,
+            qpos_start=release_goal,
             timeout=5.0,
             smooth_path=True,
-            num_waypoints=200,
+            num_waypoints=150,
             attached_object=None,
-            planner="RRTstar",
+            planner="RRTConnect",
         )
-
         if not self.waypoint_plan(retreat_path):
             print(f"[adjacent] planning failed for retreat after placing {cube1}")
             return False
 
         print(f"[adjacent] Successfully placed {cube1} {side} of {cube2}")
+        # update transitional_state for the next action
+        self.transitional_state = retreat_goal
         return True
+
     
     def adjacent_left(self, cube1: str, cube2: str) -> bool:
         return self.adjacent(cube1, cube2, side="left")

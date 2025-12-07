@@ -10,7 +10,8 @@ def lift_scene_to_predicates(robot, blocks_state):
       facts:   ['(on red green)', '(ontable blue)', '(clear red)', '(handempty)']
     """
     # Map short keys to canonical names
-    name_map = {'r':'red','g':'green','b':'blue','y':'yellow','m':'magenta','c':'cyan','r2':'red2','g2':'green2','b2':'blue2'}
+    name_map = {'r':'red','g':'green','b':'blue','y':'yellow','m':'magenta','c':'cyan','r2':'red2','g2':'green2','b2':'blue2', 'r3':'red3', 
+                'r4':'red4', 'r5':'red5', 'r6':'red6', 'r7':'red7', 'r8':'red8', 'r9':'red9', 'r10':'red10'}
     keys = list(blocks_state.keys())
 
     def size_of(k):
