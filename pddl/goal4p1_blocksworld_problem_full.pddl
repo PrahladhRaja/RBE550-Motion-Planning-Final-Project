@@ -7,7 +7,27 @@
   )
 
   
-  /
+  (:init
+(ontable red)
+(ontable red2)
+(ontable red3)
+(ontable red4)
+(ontable red6)
+(ontable red7)
+(ontable red8)
+(ontable red9)
+(ontable red10)
+(clear red)
+(clear red2)
+(clear red3)
+(clear red4)
+(clear red6)
+(clear red7)
+(clear red8)
+(clear red9)
+(clear red10)
+(holding r red5)
+)
     (:goal
       (and
         (clear red10)
