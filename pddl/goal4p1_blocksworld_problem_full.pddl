@@ -12,6 +12,7 @@
 (ontable red2)
 (ontable red3)
 (ontable red4)
+(ontable red5)
 (ontable red6)
 (ontable red7)
 (ontable red8)
@@ -21,12 +22,13 @@
 (clear red2)
 (clear red3)
 (clear red4)
+(clear red5)
 (clear red6)
 (clear red7)
 (clear red8)
 (clear red9)
 (clear red10)
-(holding r red5)
+(handempty r)
 )
     (:goal
       (and

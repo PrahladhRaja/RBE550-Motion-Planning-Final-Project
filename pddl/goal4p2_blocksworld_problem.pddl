@@ -11,14 +11,11 @@
       (clear blue)
       (clear orange)
 
-      ;;(on green2 red2)
-      (on red2 magenta)
-      (on magenta yellow)
-      (on yellow blue)
-      (on blue red)
-      (on red green)
+      
 
-      (ontable green)
+      (ontable red)
+      (ontable blue)
+      (ontable orange)
     ))
     )
     
