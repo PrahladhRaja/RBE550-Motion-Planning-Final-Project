@@ -739,7 +739,7 @@ class MotionPrimitives:
             "adjacent-left": self.adjacent_left,
             "adjacent-right": self.adjacent_right,
             "adjacent-top": self.adjacent_top,
-            # "unstack": self.unstack,  # keep if/when you use it
+            "unstack": self.unstack,  # keep if/when you use it
         }
 
         cleaned_plan = plan.replace("(", "").replace(")", "")

@@ -24,13 +24,13 @@
              (not (clear ?x))
              (not (handempty ?r))))
     
-;     (:action put-down
-;      :parameters (?r - robot ?x - cube)
-;      :precondition (holding ?r ?x)
-;      :effect (and (ontable ?x)
-;                   (clear ?x)
-;                   (handempty ?r)
-;              (not (holding ?r ?x))))
+     (:action put-down
+      :parameters (?r - robot ?x - cube)
+      :precondition (holding ?r ?x)
+      :effect (and (ontable ?x)
+                   (clear ?x)
+                   (handempty ?r)
+              (not (holding ?r ?x))))
 
     (:action stack
      :parameters (?r - robot ?x - cube ?y - cube)

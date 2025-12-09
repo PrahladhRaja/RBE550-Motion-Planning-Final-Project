@@ -1,9 +1,9 @@
-(define (problem goal2_blocksworld_tower)
+(define (problem blocksworld)
     (:domain blocksworld)
     (:objects
     r - robot
     red green blue yellow magenta cyan - cube
-    tower1 - tower)
+    tower1 tower2 - tower)
 
     (:init
     (ontable red)
@@ -17,14 +17,13 @@
     )
     
     (:goal (and
-      (clear magenta)
-
-      (on magenta yellow)
-      (on yellow blue)
-      (on blue red)
       (on red green)
+      (on green blue)
+      (ontable blue)
 
-      (ontable green)
+      (on yellow magenta)
+      (on magenta cyan)
+      (ontable cyan)
     ))
     )
     
