@@ -285,3 +285,36 @@ def goal4p1()->tuple[Any,Any,dict[Any, str], Any]:
     blocks_state: Dict[str, Any] = {"r": cubeR, "r2": cubeG, "r3": cubeB, "r4": cubeY, "r5": cubeM, "r6": cubeC, "r7":cubeR2, "r8":cubeG2, "r9":cubeB2, "r10":cubeC2}
 
     return scene, franka, blocks_state
+
+def goal4p2()->tuple[Any,Any,dict[Any, str], Any]:
+    scene = _build_base_scene()
+
+    plane = scene.add_entity(gs.morphs.Plane())
+
+    posR = _rand_xy((0.65, 0.0, 0.02))
+    posB = _rand_xy((0.65, 0.2, 0.02))
+    posO = _rand_xy((0.65, 0.4, 0.02))
+    
+    cubeR = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posR),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+    )
+    cubeB = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posB),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+    )
+    cubeO = scene.add_entity(
+        gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posO),
+        surface=gs.options.surfaces.Plastic(color=(1.0, 0.647, 0.0)))
+
+    franka_raw = scene.add_entity(gs.morphs.MJCF(file="xml/franka_emika_panda/panda.xml"))
+    franka = RobotAdapter(franka_raw, scene)
+    scene.build()
+
+    franka.set_qpos(np.array([0.0, -0.5, -0.2, -1.0, 0.0, 1.00, 0.5, 0.02, 0.02]))
+
+    _elevate_robot_base(franka)
+
+    blocks_state: Dict[str, Any] = {"r":cubeR, "b":cubeB, "o":cubeO}
+
+    return scene, franka, blocks_state

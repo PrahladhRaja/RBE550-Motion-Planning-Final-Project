@@ -398,20 +398,16 @@ class MotionPrimitives:
         return True
 
     def _push_away_from_base(self, x, y, min_radius=0.30, margin=0.05):
-        """
-        Ensure the target (x, y) is not too close to the robot base.
-        If it's inside min_radius, push it straight forward in +x.
-        """
-        base_pos = np.asarray(self.robot.get_pos(), dtype=float)  # [x, y, z]
+      
+        base_pos = np.asarray(self.robot.get_pos(), dtype=float)  
         bx, by = float(base_pos[0]), float(base_pos[1])
 
         dx = x - bx
         dy = y - by
         dist = math.sqrt(dx*dx + dy*dy)
         if dist >= min_radius:
-            return x, y   # already safe
+            return x, y   
 
-        # push point along +x direction away from base
         push = (min_radius + margin) - dist
         x_new = x + push
         return x_new, y
@@ -534,7 +530,7 @@ class MotionPrimitives:
         retreat_goal = np.asarray(retreat_goal, dtype=float)
         retreat_goal[-2:] = self.GRIPPER_OPEN
 
-        # retreat up with OMPL (no attached object anymore)
+    
         retreat_path = self.planInterface.plan_path(
             qpos_goal=retreat_goal,
             qpos_start=release_goal,
@@ -562,6 +558,116 @@ class MotionPrimitives:
 
     def adjacent_top(self, cube1: str, cube2: str) -> bool:
         return self.adjacent(cube1, cube2, side="top")
+    
+
+    def triangle_struct(self, top_cube: str, left_cube: str, right_cube: str) -> bool:
+
+        left_pos  = self.get_cube_pos(left_cube)
+        right_pos = self.get_cube_pos(right_cube)
+
+        lx, ly, lz = map(float, left_pos[:3])
+        rx, ry, rz = map(float, right_pos[:3])
+
+        base_z = 0.5 * (lz + rz)
+
+        mid_x = 0.5 * (lx + rx)
+        mid_y = 0.5 * (ly + ry)
+
+        CUBE_SIZE = 0.04
+
+        quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
+        ee_link = self.robot.get_link(self.LINK_NAME)
+
+        hover_z = base_z + CUBE_SIZE + self.Z_DISTANCE_GAP
+        hover_pos = np.array([mid_x, mid_y, hover_z], dtype=float)
+
+        place_z = base_z + CUBE_SIZE + 0.001  
+        place_pos = np.array([mid_x, mid_y, place_z], dtype=float)
+
+        hover_q = self.robot.inverse_kinematics(
+            link=ee_link, pos=hover_pos, quat=quat
+        )
+        if hover_q is None:
+            print(f"[triangle_struct] IK failed for hover above midpoint of {left_cube},{right_cube}")
+            return False
+
+        hover_q = np.asarray(hover_q, dtype=float)
+        hover_q[-2:] = self.GRIPPER_CLOSE
+
+        if isinstance(self.transitional_state, (list, tuple, np.ndarray)) and len(self.transitional_state):
+            q_start = np.asarray(self.transitional_state, dtype=float)
+        else:
+            q_start = np.asarray(self.robot.get_qpos(), dtype=float)
+
+        hover_path = self.planInterface.plan_path(
+            qpos_goal=hover_q,
+            qpos_start=q_start,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=120,
+            attached_object=self.blocks_state.get(top_cube),
+            planner="RRTConnect",
+        )
+        if not self.waypoint_plan(hover_path, top_cube):
+            print(f"[triangle_struct] planning failed to reach hover above midpoint")
+            return False
+
+        print(f"[triangle_struct] Reached hover above midpoint of {left_cube} and {right_cube}")
+
+        place_q = self.robot.inverse_kinematics(
+            link=ee_link, pos=place_pos, quat=quat
+        )
+        if place_q is None:
+            print(f"[triangle_struct] IK failed for final place pose of {top_cube}")
+            return False
+
+        place_q = np.asarray(place_q, dtype=float)
+        place_q[-2:] = self.GRIPPER_CLOSE
+
+        N = 80
+        joint_path = []
+        for alpha in np.linspace(0.0, 1.0, N):
+            q = (1.0 - alpha) * hover_q + alpha * place_q
+            joint_path.append(q)
+
+        if not self.waypoint_plan(joint_path, top_cube):
+            print(f"[triangle_struct] vertical descent failed for {top_cube}")
+            return False
+
+        release_q = place_q.copy()
+        release_q[-2:] = self.GRIPPER_OPEN
+        self.robot.control_dofs_position(release_q)
+        for _ in range(25):
+            self.scene.step()
+
+        print(f"[triangle_struct] Placed {top_cube} bridging {left_cube} and {right_cube}")
+
+        retreat_pos = place_pos.copy()
+        retreat_pos[2] = hover_z
+        retreat_q = self.robot.inverse_kinematics(
+            link=ee_link, pos=retreat_pos, quat=quat
+        )
+        if retreat_q is None:
+            print(f"[triangle_struct] IK failed for retreat after placing {top_cube}")
+            return False
+
+        retreat_q = np.asarray(retreat_q, dtype=float)
+        retreat_q[-2:] = self.GRIPPER_OPEN
+
+        retreat_path = []
+        for alpha in np.linspace(0.0, 1.0, 60):
+            q = (1.0 - alpha) * release_q + alpha * retreat_q
+            retreat_path.append(q)
+
+        if not self.waypoint_plan(retreat_path):
+            print(f"[triangle_struct] retreat interpolation failed")
+            return False
+
+        self.transitional_state = retreat_q
+        self.held_cube = None
+        print(f"[triangle_struct] Bridge structure completed.")
+        return True
+
 
     def preds_to_pddl(self, preds, base_problem_file: str) -> None:
         with open(base_problem_file, "r") as file:
