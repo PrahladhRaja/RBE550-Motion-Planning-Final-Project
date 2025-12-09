@@ -1,0 +1,4 @@
+(pick-up r blue)
+(adjacent-right r blue orange)
+(pick-up r red)
+(stack r red blue)

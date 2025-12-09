@@ -13,6 +13,7 @@
      (adjacent-left ?x - cube ?y - cube)
      (adjacent-right ?x - cube ?y - cube)
      (adjacent-top ?x - cube ?y - cube)
+     (triangle-three ?x - cube ?top - cube ?mid - cube)
      )
 
     (:action pick-up
@@ -74,6 +75,19 @@
                  (clear ?x)
                  (handempty ?r)
                  (not (holding ?r ?x))))
-             
+
+    (:action triangle-three
+    :parameters (?r - robot ?x - cube ?top -  cube ?mid - cube)
+    :precondition (and (handempty ?r)(ontable ?x)
+                  (clear ?x)
+                  (clear ?top)
+                  (clear ?mid)
+                  (adjacent-top ?x ?top))
+    :effect (and (not (ontable ?x))
+            (on ?mid ?x)
+            (clear ?x)
+            (handempty ?r)
+  )
+)        
              
 )

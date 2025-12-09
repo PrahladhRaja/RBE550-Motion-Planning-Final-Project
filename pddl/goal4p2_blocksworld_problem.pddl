@@ -5,17 +5,28 @@
     red blue orange - cube
     )
 
-/    
+    (:init
+    (ontable red)
+    (ontable blue)
+    (ontable orange)
+
+    (clear red)
+    (clear blue)
+    (clear orange)
+
+
+    (handempty r)
+  )
+    
     (:goal (and
-      (clear red)
-      (clear blue)
-      (clear orange)
+    (on red blue)
+    (adjacent-right blue orange)
+    (ontable blue)
+    (ontable orange)
+    (clear red)
+    (handempty r)
+    
 
-      
-
-      (ontable red)
-      (ontable blue)
-      (ontable orange)
     ))
     )
     
