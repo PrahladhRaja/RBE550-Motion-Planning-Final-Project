@@ -148,7 +148,7 @@ def create_scene_stacked() -> Tuple[Any, Any, Dict[str, Any], Any]:
 
     return scene, franka, blocks_state
 
-def goal3tower()->tuple[Any,Any,dict[Any, str], Any]:
+def creates_scene_extrablocks()->tuple[Any,Any,dict[Any, str], Any]:
     scene = _build_base_scene()
 
     plane = scene.add_entity(gs.morphs.Plane())
@@ -210,7 +210,7 @@ def goal3tower()->tuple[Any,Any,dict[Any, str], Any]:
 
     _elevate_robot_base(franka)
 
-    blocks_state: Dict[str, Any] = {"r": cubeR, "g": cubeG, "b": cubeB, "y": cubeY, "m": cubeM, "c": cubeC, "r2":cubeR2, "g2":cubeG2, "b2":cubeB2}
+    blocks_state: Dict[str, Any] = {"r": cubeR, "r2": cubeR2, "g": cubeG, "g2": cubeG2, "b": cubeB, "b2": cubeB2, "y": cubeY, "m": cubeM, "c": cubeC}
 
     return scene, franka, blocks_state
 

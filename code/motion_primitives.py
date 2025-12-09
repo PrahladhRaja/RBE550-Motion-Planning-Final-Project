@@ -19,19 +19,20 @@ class MotionPrimitives:
 
         self.complete_waypoint_path = []
         self.transitional_state = []   
-        self.held_cube = None         
+        self.held_cube = None
+        self.tower_base_pos = []
+        self.stack_count = 0         
 
         self.Z_DISTANCE_GAP = 0.15
-        self.GRIPPER_OPEN = 0.035
-        self.GRIPPER_CLOSE = 0.001  
+        self.GRIPPER_OPEN = np.array([0.035], dtype=np.float32) #0.035
+        self.GRIPPER_CLOSE = np.array([0.0167], dtype=np.float32) #0.0167 #Lower means tighter grip
         self.LINK_NAME = "hand"
+        self.finger1_idx = self.robot.get_joint("finger_joint1").dof_idx_local
+        self.finger2_idx = self.robot.get_joint("finger_joint2").dof_idx_local
 
-        self.tower_base_pos = []
-        self.stack_count = 0
 
-  
-
-    def get_block_pos(self, block_color: str, BlocksState: Dict[str, Any]) -> np.ndarray:
+    def get_block_pos(sef, block_color: str, BlocksState: Dict[str, Any]) -> np.array:
+        print(block_color)
         name_colors = {"r": "Red", "g": "Green", "b": "Blue", "y": "Yellow","m": "Magenta", "c": "Cyan","r2": "Red2", "g2": "Green2", "b2": "Blue2",
                        "r3": "Red3", "r4": "Red4", "r5": "Red5","r6": "Red6", "r7": "Red7", "r8": "Red8","r9": "Red9", "r10": "Red10"}
         that_block = BlocksState[block_color]
@@ -49,15 +50,12 @@ class MotionPrimitives:
             return False
 
         for waypoint in path:
-            if cube is not None:
-                # keep cube rigidly attached to left_finger
-                offset = np.array([0.0, 0.019, -0.047])
-                finger_pose = self.robot.get_link("left_finger").get_pos()
-                finger_pose_np = np.asarray(finger_pose, dtype=float)
-                cube_pose = finger_pose_np.copy()
-                cube_pose[:3] += offset
-                self.blocks_state.get(cube).set_pos(cube_pose)
-
+            if cube:
+                self.robot.control_dofs_position(self.GRIPPER_CLOSE, self.finger1_idx)
+                self.robot.control_dofs_position(self.GRIPPER_CLOSE, self.finger2_idx)
+            else:
+                self.robot.control_dofs_position(self.GRIPPER_OPEN, self.finger1_idx)
+                self.robot.control_dofs_position(self.GRIPPER_OPEN, self.finger2_idx)
             waypoint = np.asarray(waypoint, dtype=np.float32)
             self.robot.control_dofs_position(waypoint)
             self.scene.step()
@@ -158,6 +156,19 @@ class MotionPrimitives:
         for _ in range(50):
             self.scene.step()
 
+                #goal2 = np.array(goal2, dtype=float)
+        
+        '''
+        path2 = self.planInterface.plan_path(
+            qpos_goal=goal2,
+            qpos_start=goal1,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=200,
+            attached_object=self.blocks_state.get(cube),
+            planner="RRTConnect",
+        )
+        '''
         # Close gripper
         goal2_closed = goal2.copy()
         goal2_closed[-2:] = self.GRIPPER_CLOSE
@@ -239,6 +250,7 @@ class MotionPrimitives:
             return False
 
         stack_goal = np.array(stack_goal, dtype=float)
+        stack_goal[-2:] = self.GRIPPER_CLOSE
 
         stack_path = self.planInterface.plan_path(
             qpos_goal=stack_goal,
@@ -258,7 +270,7 @@ class MotionPrimitives:
 
         # Refine: move closer to the actual top
         cube_pos = np.array(
-            [target_x + 0.001, target_y, target_z + self.Z_DISTANCE_GAP], dtype=float
+            [target_x + 0.0045, target_y + 0.0021, target_z + self.Z_DISTANCE_GAP + 0.011], dtype=float
         )
         q_refined = self.robot.inverse_kinematics(
             link=ee_link, pos=cube_pos, quat=target_quat1
@@ -266,6 +278,22 @@ class MotionPrimitives:
         refined_goal = np.array(q_refined, dtype=float)
         refined_goal[-2:] = self.GRIPPER_CLOSE
 
+        refined_path = self.planInterface.plan_path(
+            qpos_goal=refined_goal,
+            qpos_start=stack_goal,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints=150,  # 3s duration
+            attached_object=self.blocks_state.get(cube1),
+            planner="RRTConnect",
+        )
+        if not self.waypoint_plan(refined_path, cube1):
+            print(f"[Perfecting approximation]: Getting better IK to top of cube failed.")
+            return False
+        else:
+            print(f"[Perfecting approximation: Successfully got closer to top of block {cube1}")
+        
+        '''
         self.robot.control_dofs_position(refined_goal)
         for _ in range(50):
             self.scene.step()
@@ -274,6 +302,24 @@ class MotionPrimitives:
         letgo_goal = refined_goal.copy()
         letgo_goal[-2:] = self.GRIPPER_OPEN
         self.robot.control_dofs_position(letgo_goal)
+        '''
+
+        letgo_goal = refined_goal
+        letgo_goal[-2:] = self.GRIPPER_OPEN
+
+        letgo_path = self.planInterface.plan_path(
+            qpos_goal=letgo_goal,
+            qpos_start=refined_goal,
+            timeout=5.0,
+            smooth_path=True,
+            num_waypoints= 25,  # 1s duration
+            attached_object=self.blocks_state.get(cube1),
+            planner="RRTConnect",
+        )
+
+        if not self.waypoint_plan(letgo_path):
+            print(f"[Letting Gooo]: planning failed for releasing grasped cube {cube1}")
+            return False
 
         print(f"[Letting Gooo]: Successfully placed block on top of block {cube2}")
 
@@ -333,11 +379,12 @@ class MotionPrimitives:
         goal_pos = np.array([place_x, place_y, self.Z_DISTANCE_GAP + 0.02], dtype=float)
         return goal_pos
 
-    def unstack(self, cube1: str, cube2: str) -> bool:
-        # pick up the top cube
+
+    def unstack(self, cube1:str, cube2:str) -> bool:
         if not self.pick_up(cube1):
             return False
-
+        
+        self.pick_up(cube1)
         _ = self.get_cube_pos(cube2)  # only used to force printing / sanity check
 
         place_range = [[0.4, 0.7], [0.1, 0.2]]
@@ -704,6 +751,7 @@ class MotionPrimitives:
 
             step_cleaned = step.split()
             print(step_cleaned)
+            '''
             primitive = string2action[step_cleaned[0]]
             # handle names like red3 -> 'r3'
             args = [color[0] + color[-1] if color[-1].isdigit() else color[0]
@@ -731,6 +779,31 @@ class MotionPrimitives:
                 break
 
             action, args = actions[0]
+            '''
+            primative = string2action[step_cleaned[0]]
+            args = []
+            #args = [color[0] for color in step_cleaned[2:]]
+            for color in step_cleaned[2:]:
+                if (color == "red2"):
+                    args.append("r2")
+                elif (color == "green2"):
+                    args.append("g2")
+                elif (color == "blue2"):
+                    args.append("b2")
+                else:
+                    args.append(color[0])
+            #print(args)
+            actions.append((primative, args))
+        return actions
+
+    def execute_symbolic_plan(self, input_file, blockstate):
+        with open(input_file, 'r') as file:
+            plan = file.read()
+        print(plan)
+        actions = self.parse_symbolic_plan(plan)
+        for i in range(len(actions)):
+            action, args = actions[i]
+            
             action(*args)
 
 
