@@ -39,33 +39,10 @@ def solve_pddl_problem(problem_file_name: str, domain_file_name: str = '/blocksw
     print(os.path.join(PDDLS_LOCATIONS, problem_file_name + ".soln"))
     return os.path.join(PDDLS_LOCATIONS, problem_file_name + ".soln")
 
-def scene_selection_menu() -> str:
-    print("\n----------------- Scene Selection Menu ----------------")
-    print("Please select one of the following scenes to start from.\n")
-    print("\t1. Scene one: 6 Cubes on Table")
-    print("\t2. Scene two: 6 Stacked Cubes")
-    print("\t3. Scene with more cubes!")
-    print("\t4. Scene with only 10 Red cubes!")
-    print("\t5. Only a few.")
-    print("\t6. Exit")
-    print("------------------------------------------------------\n\n")
-
-    return input("Goal Choice: ")
-
-def goal_selection_menu() -> str:
-    print("\n----------------- Goal Selection Menu ----------------")
-    print("Please select one of the following goals to accomplish.\n")
-    print("\t1. Building Two Towers")
-    print("\t2. Building a Five Block Tower")
-    print("\t3. Attempt the Tallest Tower!")
-    print("\t4. Build special structure #1")
-    print("\t5. Build special structure #2")
-    print("\t6. Exit")
-    print("------------------------------------------------------\n\n")
-
-    return input("Goal Choice: ")
-
-def solve_goal(builder: any, BlocksState: any, scene: any, pddl_problem_soln: str) -> None:
+def solve_goal(builder: scenes.RobotAdapter, 
+               BlocksState: dict, 
+               scene: gs.engine.scene, 
+               pddl_problem_soln: str) -> None:
     # set control gains
     # Note: the following values are tuned for achieving best behavior with builder
     # Typically, each new robot would have a different set of parameters.
@@ -85,7 +62,7 @@ def solve_goal(builder: any, BlocksState: any, scene: any, pddl_problem_soln: st
     plan_this_pddl = os.path.join(PDDLS_LOCATIONS, pddl_problem_soln)
     solve_motion.execute_symbolic_plan(plan_this_pddl, BlocksState)
 
-def ensure_scenes_are_built(user_choice_scene: int) -> Tuple[Any, Any, Any]:
+def ensure_scenes_are_built(user_choice_scene: int): # -> Tuple[gs.engine.scene, scenes.RobotAdapter, dict]:
     # Ensure Genesis is initialized before building scenes
     if len(sys.argv) > 1 and sys.argv[1] == "gpu":
         gs.init(backend=gs.gpu, logging_level='Warning', logger_verbose_time=False)
@@ -102,23 +79,60 @@ def ensure_scenes_are_built(user_choice_scene: int) -> Tuple[Any, Any, Any]:
         case '4':
             scene, builder, BlocksState = scenes.goal4p1()
         case '5':
-            scene, builder, BlocksState = scenes.creates_scene_extrablocks()
+            scene, builder, BlocksState = scenes.goal4p2()
         case '6':
             print("Goodbye now!")
+            return None
         case _:
             print("How did you get here? Thats not a valid choice.")
-    
+            return None
+
+    # Just checking for Types
+    # print(f"Scene type: {type(scene)}")
+    # print(f"Builder type: {type(builder)}")
+    # print(f"BlocksState type: {type(BlocksState)}")
+
     return scene, builder, BlocksState
 
+def scene_selection_menu() -> str:
+    print("\n----------------- Scene Selection Menu ----------------")
+    print("Please select one of the following scenes to start from.\n")
+    print("\t1. Scene one: 6 Cubes on Table")
+    print("\t2. Scene two: 6 Stacked Cubes")
+    print("\t3. Scene with more cubes!")
+    print("\t4. Scene with only 10 Red cubes!")
+    print("\t5. Only a few.")
+    print("\t6. Exit")
+    print("------------------------------------------------------\n\n")
+
+    return input("Scene Choice: ")
+
+def goal_selection_menu() -> str:
+    print("\n----------------- Goal Selection Menu ----------------")
+    print("Please select one of the following goals to accomplish.\n")
+    print("\t1. Building Two Towers")
+    print("\t2. Building a Five Block Tower")
+    print("\t3. Attempt the Tallest Tower!")
+    print("\t4. Build special structure #1")
+    print("\t5. Build special structure #2")
+    print("\t6. Exit")
+    print("------------------------------------------------------\n\n")
+
+    return input("Goal Choice: ")
 
 def main():
-    print(f"Script directory: {SCRIPT_DIRECTORY}")
-    print(f"Script directory Parent: {os.path.dirname(SCRIPT_DIRECTORY)}")
-    print(f"PDDL directory locations: {PDDLS_LOCATIONS}")
+    # Sanity check for file locations
+    # print(f"Script directory: {SCRIPT_DIRECTORY}")
+    # print(f"Script directory Parent: {os.path.dirname(SCRIPT_DIRECTORY)}")
+    # print(f"PDDL directory locations: {PDDLS_LOCATIONS}")
 
     user_choice_scene = scene_selection_menu()
-    user_choice_goal = goal_selection_menu()
-
+    if '1' <= user_choice_scene <= '5':
+        user_choice_goal = goal_selection_menu()
+    else:
+        print("Goodbye now!")
+        return
+    
     scene, builder, BlocksState = ensure_scenes_are_built(user_choice_scene)
 
     match user_choice_goal:
@@ -133,7 +147,7 @@ def main():
 
         case '2':
             if user_choice_scene == '1':
-                pddl_solution = solve_pddl_problem("goal2_blocksworld_problem.pddl")
+                pddl_solution = solve_pddl_problem("goal2_blocksworld_problem_full.pddl")
             elif user_choice_scene == '2':
                 pddl_solution = solve_pddl_problem("goal2_blocksworld_problem_stacked.pddl")
             else:
@@ -141,22 +155,27 @@ def main():
 
         case '3':
             if user_choice_scene == '1' or '3':
-                pddl_solution = solve_pddl_problem("goal3_blocksworld_problem.pddl.soln")
+                pddl_solution = solve_pddl_problem("goal3_blocksworld_problem.pddl")
             else:
                 print("This goal is only compatible with scene 1 and 3! Try again!")
 
         case '4':
             if user_choice_scene == '4':
-                pddl_solution = solve_pddl_problem("goal4p1_blocksworld_problem_full.pddl.soln")
+                pddl_solution = solve_pddl_problem("goal4p1_blocksworld_problem_full.pddl")
             else:
                 print("This goal is only compatible with scene 4! Try again!")
 
         case '5':
-            solve_goal(builder, BlocksState, scene, "goal4p2_blocksworld_problem.pddl.soln")
+            if user_choice_scene == '5':
+                pddl_solution = solve_pddl_problem("goal4p2_blocksworld_problem.pddl")
+
         case '6':
             print("Goodbye now!")
+            return
+
         case _:
             print("How did you get here? Thats not a valid choice.")
+            return
 
     solve_goal(builder, BlocksState, scene, pddl_solution)
 
