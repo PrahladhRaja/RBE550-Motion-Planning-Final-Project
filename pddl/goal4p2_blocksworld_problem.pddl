@@ -1,11 +1,11 @@
-(define (problem goal4p1_blocksworld)
-    (:domain blocksworld)
-    (:objects
+(define (problem goal4p2_blocksworld)
+  (:domain blocksworld)
+  (:objects
     r - robot
     red blue orange - cube
-    )
+  )
 
-    (:init
+  (:init
     (ontable red)
     (ontable blue)
     (ontable orange)
@@ -14,19 +14,18 @@
     (clear blue)
     (clear orange)
 
-
     (handempty r)
   )
-    
-    (:goal (and
-    (on red blue)
-    (adjacent-right blue orange)
-    (ontable blue)
-    (ontable orange)
-    (clear red)
-    (handempty r)
-    
-
-    ))
+  
+  (:goal 
+    (and
+      (on red blue)
+      (adjacent-right blue orange)
+      (ontable blue)
+      (ontable orange)
+      (clear red)
+      (handempty r)
     )
+  )
+)
     

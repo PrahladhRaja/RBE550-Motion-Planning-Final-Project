@@ -18,7 +18,9 @@
 
     (:action pick-up
      :parameters (?r - robot ?x - cube)
-     :precondition (and (ontable ?x) (clear ?x) (handempty ?r))
+     :precondition (and (ontable ?x) 
+                        (clear ?x) 
+                        (handempty ?r))
      :effect (and (holding ?r ?x)
              (not (ontable ?x))
              (not (clear ?x))
@@ -26,7 +28,7 @@
     
      (:action put-down
       :parameters (?r - robot ?x - cube)
-      :precondition (holding ?r ?x)
+      :precondition (and (holding ?r ?x))
       :effect (and (ontable ?x)
                    (clear ?x)
                    (handempty ?r)
@@ -34,7 +36,8 @@
 
     (:action stack
      :parameters (?r - robot ?x - cube ?y - cube)
-     :precondition (and (holding ?r ?x) (clear ?y))
+     :precondition (and (holding ?r ?x) 
+                        (clear ?y))
      :effect (and (on ?x ?y)
                   (clear ?x)
                   (handempty ?r)
@@ -43,15 +46,19 @@
     
      (:action unstack
      :parameters (?r - robot ?x - cube ?y - cube)
-     :precondition (and (on ?x ?y) (clear ?x) (handempty ?r))
-     :effect (and (ontable ?x)
+     :precondition (and (on ?x ?y) 
+                        (clear ?x) 
+                        (handempty ?r))
+     :effect (and (holding ?r ?x)
+                  (not (handempty ?r))
+                  (not (clear ?x))
                   (clear ?y)
-             (not (on ?x ?y))
-             ))     
+             (not (on ?x ?y))))     
 
     (:action adjacent-left
     :parameters (?r - robot ?x - cube ?y - cube)
-    :precondition (and(holding ?r ?x) (ontable ?y))
+    :precondition (and  (holding ?r ?x) 
+                        (ontable ?y))
     :effect (and (adjacent-left ?x ?y)
                  (ontable ?x)
                  (clear ?x)
@@ -60,7 +67,8 @@
 
     (:action adjacent-right
     :parameters (?r - robot ?x - cube ?y - cube)
-    :precondition (and(holding ?r ?x)(ontable ?y))
+    :precondition (and (holding ?r ?x)
+                        (ontable ?y))
     :effect (and (adjacent-right ?x ?y)
                  (ontable ?x)
                  (clear ?x)
