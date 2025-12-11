@@ -15,19 +15,17 @@ PDDLS_LOCATIONS = os.path.join(os.path.dirname(SCRIPT_DIRECTORY), "pddl")
 
 command = "pyperplan benchmarks/tpp/domain.pddl benchmarks/tpp/task01.pddl"
 
-def solve_pddl_problem(poblem_file_name: str) -> str:
+def solve_pddl_problem(problem_file_name: str, domain_file_name: str = '/blocksworld_domain_123.pddl') -> str:
 
 
-    if os.path.exists(PDDLS_LOCATIONS + '/' + poblem_file_name + '.soln'):
-        print(f"This solution has already been found and is saved as: {poblem_file_name + 'soln'}")
-        return os.path.join(PDDLS_LOCATIONS, poblem_file_name + ".soln")
+    if os.path.exists(PDDLS_LOCATIONS + '/' + problem_file_name + '.soln'):
+        print(f"This solution has already been found and is saved as: {problem_file_name + 'soln'}")
+        return os.path.join(PDDLS_LOCATIONS, problem_file_name + ".soln")
     try:
-        result = subprocess.run(['pyperplan', 
-                                 PDDLS_LOCATIONS + '/blocksworld_domain.pddl', 
-                                 PDDLS_LOCATIONS + '/' + poblem_file_name],
-                                 capture_output=True, 
-                                 text=True, 
-                                 check=True)
+        domain = PDDLS_LOCATIONS + domain_file_name
+        problem = PDDLS_LOCATIONS + '/' + problem_file_name
+        cmd = ["python3","-m","pyperplan","-s","astar","-H","hff",domain,problem]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         print("Command output: Success! Specified PDDL Solved!")
         print(result.stdout)
         if result.stderr:
@@ -38,8 +36,8 @@ def solve_pddl_problem(poblem_file_name: str) -> str:
         print(e.stderr)
 
     # Return the solution file name as a full path
-    print(os.path.join(PDDLS_LOCATIONS, poblem_file_name + ".soln"))
-    return os.path.join(PDDLS_LOCATIONS, poblem_file_name + ".soln")
+    print(os.path.join(PDDLS_LOCATIONS, problem_file_name + ".soln"))
+    return os.path.join(PDDLS_LOCATIONS, problem_file_name + ".soln")
 
 def scene_selection_menu() -> str:
     print("\n----------------- Scene Selection Menu ----------------")

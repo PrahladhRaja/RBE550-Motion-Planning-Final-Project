@@ -25,7 +25,7 @@ class MotionPrimitives:
 
         self.Z_DISTANCE_GAP = 0.15
         self.GRIPPER_OPEN = np.array([0.035], dtype=np.float32) #0.035
-        self.GRIPPER_CLOSE = np.array([0.0167], dtype=np.float32) #0.0167 #Lower means tighter grip
+        self.GRIPPER_CLOSE = np.array([0.01], dtype=np.float32) #0.0167 #Lower means tighter grip
         self.LINK_NAME = "hand"
         self.finger1_idx = self.robot.get_joint("finger_joint1").dof_idx_local
         self.finger2_idx = self.robot.get_joint("finger_joint2").dof_idx_local
@@ -358,40 +358,45 @@ class MotionPrimitives:
         self.transitional_state = move_away_goal
         self.held_cube = None
         return True
+    
+    def spot_is_clear(self, x, y, clear_buffer = 0.1) -> bool:
+        for cube in self.blocks_state.keys():
+            cube_x, cube_y, _ = self.get_cube_pos(cube)
+            if math.sqrt((x - cube_x) ** 2 + (y - cube_y) ** 2) <= clear_buffer:
+                return False
+        
+        return True
 
-    def get_clear_spot(self, place_range) -> np.ndarray:
-        clear_buffer = 0.06
-        clear_spot_found = False
+    def get_clear_spot(self, place_range,max_iterations=100) -> np.ndarray:
 
         place_x = -100.0
         place_y = -100.0
-        while not clear_spot_found:
+        for _ in range(max_iterations):
             place_x = rand.uniform(place_range[0][0], place_range[0][1])
             place_y = rand.uniform(place_range[1][0], place_range[1][1])
 
-            for cube in self.blocks_state.keys():
-                cube_x, cube_y, _ = self.get_cube_pos(cube)
-                if math.sqrt((place_x - cube_x) ** 2 + (place_y - cube_y) ** 2) <= clear_buffer:
-                    break
-            else:
-                clear_spot_found = True
-
-        goal_pos = np.array([place_x, place_y, self.Z_DISTANCE_GAP + 0.02], dtype=float)
-        return goal_pos
-
-
+            if self.spot_is_clear(place_x, place_y):
+                return np.array([place_x, place_y, self.Z_DISTANCE_GAP], dtype=float)
+            
+        
+        raise Exception("Error: No clear spot found to put cube down")
+    
     def unstack(self, cube1:str, cube2:str) -> bool:
+        # Wrapper for pick_up so passing two arguments doesn't throw an error
         if not self.pick_up(cube1):
             return False
         
-        self.pick_up(cube1)
-        _ = self.get_cube_pos(cube2)  # only used to force printing / sanity check
+        return True
 
-        place_range = [[0.4, 0.7], [0.1, 0.2]]
+
+    def put_down(self, cube1:str) -> bool:
+
+
+        place_range = [[0.3, 0.5], [-0.35, 0.35]]
         goal_pos = self.get_clear_spot(place_range)
 
         if goal_pos[0] < -10:
-            print("[unstack] failed to find clear spot to place down cube")
+            print("[put-down] failed to find clear spot to place down cube")
             return False
 
         ee_link = self.robot.get_link(self.LINK_NAME)
@@ -401,7 +406,7 @@ class MotionPrimitives:
             link=ee_link, pos=goal_pos, quat=quat
         )
         if place_goal is None:
-            print(f"[unstack] IK failed for pre-place of cube {cube1}")
+            print(f"[put-down] IK failed for pre-place of cube {cube1}")
             return False
 
         place_goal = np.array(place_goal, dtype=float)
@@ -409,19 +414,24 @@ class MotionPrimitives:
 
         pre_path = self.planInterface.plan_path(
             qpos_goal=place_goal,
-            qpos_start=None,
+            qpos_start=self.transitional_state,
             timeout=5.0,
             smooth_path=True,
-            num_waypoints=300,
+            num_waypoints=100,
             attached_object=self.blocks_state.get(cube1),
-            planner="RRTStar",
+            planner="RRTConnect",
         )
 
         if not self.waypoint_plan(pre_path, cube1):
-            print(f"[unstack]: planning failed for placing down {cube1}")
+            print(f"[put-down]: planning failed for placing down {cube1}")
             return False
 
-        print("[unstack]: Reached clear position for place down")
+        print("[put-down]: Reached clear position for place down, refining placement")
+
+        self.robot.control_dofs_position(place_goal)
+        for _ in range(20):
+            self.scene.step()
+
 
         release_goal = place_goal.copy()
         release_goal[-2:] = self.GRIPPER_OPEN
@@ -439,7 +449,7 @@ class MotionPrimitives:
         for _ in range(20):
             self.scene.step()
 
-        print(f"[unstack] Successfully placed cube {cube1}")
+        print(f"[put-down] Successfully placed cube {cube1}")
         self.transitional_state = retreat_goal
         self.held_cube = None
         return True
@@ -736,10 +746,11 @@ class MotionPrimitives:
         string2action = {
             "pick-up": self.pick_up,
             "stack": self.stack,
+            "unstack": self.unstack,
             "adjacent-left": self.adjacent_left,
             "adjacent-right": self.adjacent_right,
             "adjacent-top": self.adjacent_top,
-            "unstack": self.unstack,  # keep if/when you use it
+            "put-down": self.put_down,  # keep if/when you use it
         }
 
         cleaned_plan = plan.replace("(", "").replace(")", "")
