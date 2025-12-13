@@ -1,5 +1,6 @@
 (define (problem goal4p2_blocksworld)
   (:domain blocksworld)
+  
   (:objects
     r - robot
     red blue orange - cube
@@ -19,11 +20,21 @@
   
   (:goal 
     (and
-      (on red blue)
-      (adjacent-right blue orange)
+      (right-of blue orange)
+
+      (behind red blue)
+
+      (touches red blue)
+      (touches red orange)
+      
+      (ontable red)
       (ontable blue)
       (ontable orange)
+
       (clear red)
+      (clear blue)
+      (clear orange)
+
       (handempty r)
     )
   )

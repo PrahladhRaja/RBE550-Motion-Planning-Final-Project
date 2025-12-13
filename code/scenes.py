@@ -291,9 +291,9 @@ def goal4p2()->tuple[Any,Any,dict[Any, str], Any]:
 
     plane = scene.add_entity(gs.morphs.Plane())
 
-    posR = _rand_xy((0.65, 0.0, 0.02))
-    posB = _rand_xy((0.65, 0.2, 0.02))
-    posO = _rand_xy((0.65, 0.4, 0.02))
+    posR = _rand_xy((0.45, 0.0, 0.02))
+    posB = _rand_xy((0.45, 0.2, 0.02))
+    posO = _rand_xy((0.45, 0.4, 0.02))
     
     cubeR = scene.add_entity(
         gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posR),
@@ -301,7 +301,7 @@ def goal4p2()->tuple[Any,Any,dict[Any, str], Any]:
     )
     cubeB = scene.add_entity(
         gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posB),
-        surface=gs.options.surfaces.Plastic(color=(1.0, 0.0, 0.0)),
+        surface=gs.options.surfaces.Plastic(color=(0.0, 0.0, 1.0)),
     )
     cubeO = scene.add_entity(
         gs.morphs.Box(size=(0.04, 0.04, 0.04), pos= posO),

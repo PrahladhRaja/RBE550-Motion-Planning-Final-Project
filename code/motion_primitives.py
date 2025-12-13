@@ -28,6 +28,7 @@ class MotionPrimitives:
 
         # Common distance between cube moving to grab and gripper.      
         self.Z_DISTANCE_GAP = 0.15
+        self.TURN_90 = False
         self.COMMUNAL_QUAT = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
 
         self.GRIPPER_OPEN = np.array([0.035], dtype=np.float32) #0.035
@@ -71,22 +72,27 @@ class MotionPrimitives:
     def move_to_safe_pre_pose(self, cube: str = None, position: np.array = None) -> bool:
         #position: Any = np.array([0.0, -0.5, -0.2, -1.0, 0.0, 1.00, 0.5, 0.02, 0.02], dtype=float)
         # If we want to go to grab a cube, move to a safe pre_grasp position
-        if cube:
+        if position is None:
             cube_pos = self.get_cube_pos(cube)
             x_cube, y_cube, z_cube = map(float, cube_pos[:3])
-            safe_pos = np.array([x_cube, y_cube, z_cube + self.Z_DISTANCE_GAP + 0.03], dtype=float)
+            safe_pos = np.array([x_cube, y_cube, z_cube + self.Z_DISTANCE_GAP], dtype=float)
         
         # Incorporate poisition plz
         else: 
             #safe_pos = np.array([0.55, 0.0, 0.55], dtype=float)
             print("SAVING NEW POSITION ALSO")
-            safe_pos = position
+            x_pose, y_pose, z_pose = position[0], position[1], position[2]
+            safe_pos = np.array([x_pose, y_pose, z_pose + 0.2], dtype=float)
+            print(f"Pre Place Position of cube {cube} is: {[position[0], position[1], position[2] + 0.2]}")
 
-            return False
+        if self.TURN_90:
+            target_quat1 = [1, 0, 0, 0]
+            target_quat1 = (R.from_euler("z", 90, degrees=True) * R.from_quat(target_quat1)).as_quat(scalar_first=True)
+
         # Actually calculate IK for the pre_pose and parse at once.
         safe_q = np.asarray(self.robot.inverse_kinematics(link=self.EE_LINK, 
-                                               pos=safe_pos, 
-                                               quat=self.COMMUNAL_QUAT),
+                                                          pos=safe_pos, 
+                                                          quat=self.COMMUNAL_QUAT),#target_quat1 if self.TURN_90 else self.COMMUNAL_QUAT),
                             dtype=float)
         
         # Check that IK worked, if not go to origin
@@ -109,7 +115,7 @@ class MotionPrimitives:
             qpos_start=self.transitional_state,
             timeout=5.0,
             smooth_path=True,
-            num_waypoints=175,
+            num_waypoints=200,
             attached_object=self.blocks_state.get(self.held_cube) if cube else None,   
             planner="RRTConnect",
         )
@@ -213,21 +219,30 @@ class MotionPrimitives:
 
         return True
 
-    def put_down(self, cube: str) -> bool:
+    def put_down(self, cube: str, position: np.array = None) -> bool:
         
-        #put_down_x, put_down_y = self._generate_position()
-        #goal_pos = np.array([put_down_x, put_down_y, 0.0], dtype=float)
+        if position is None:
+            goal_pos = self.get_clear_spot([[0.4, 0.7], [0.4, 0.6]])
+        else:
+            #self.move_to_safe_pre_pose(cube, position)   
 
-        goal_pos = self.get_clear_spot([[0.4, 0.7], [0.4, 0.6]])
+            x_pose, y_pose, z_pose = position[0], position[1], position[2]
+            goal_pos = np.array([x_pose, y_pose, z_pose], dtype=float)
+            print(f"Place Position of cube {cube} is: {goal_pos}")
+            
+        if self.TURN_90:
+           target_quat1 = [1, 0, 0, 0]
+           target_quat1 = (R.from_euler("z", 90, degrees=True) * R.from_quat(target_quat1)).as_quat(scalar_first=True)
         
-        place_goal = np.array(self.robot.inverse_kinematics(link=self.EE_LINK, 
-                                                            pos=goal_pos, 
-                                                            quat=self.COMMUNAL_QUAT),   
-                              dtype=float)
+        place_goal = self.robot.inverse_kinematics(
+            link=self.EE_LINK, pos=goal_pos, quat=target_quat1 if self.TURN_90 else self.COMMUNAL_QUAT
+        )
 
         if place_goal is None:
             print(f"[unstack] IK failed for pre-place of cube {cube}")
             return False
+        
+        place_goal = np.array(place_goal, dtype=float) #target_quat1 if self.TURN_90 else self.COMMUNAL_QUAT),   
 
         place_goal[-2:] = self.GRIPPER_CLOSE
 
@@ -237,12 +252,12 @@ class MotionPrimitives:
             timeout=5.0,
             smooth_path=True,
             num_waypoints=250,
-            attached_object=self.blocks_state.get(cube),
+            attached_object=self.blocks_state.get(self.held_cube),
             planner="RRTConnect",
         )
 
         if not self.waypoint_plan(pre_path, cube):
-            print(f"[Place Down]: planning failed for placing down cube {cube}")
+            print(f"[Put_Down]: planning failed for placing down cube {cube}")
             return False
 
         print("[unstack]: Reached clear position for place down")
@@ -289,7 +304,7 @@ class MotionPrimitives:
         # Get target cube position and consider this the reachable Pre_Pose
         #target_cube_pos = np.array([target_x, target_y, target_z + self.Z_DISTANCE_GAP + 0.03], dtype=float)
 
-        # Reach a pre-grasp position for destination cube
+        # Reach a pre-place position for destination cube
         self.move_to_safe_pre_pose(cube2)
 
         # Refine: move closer to the actual top of the cube to stack on
@@ -723,6 +738,46 @@ class MotionPrimitives:
         print(f"[triangle_struct] Bridge structure completed.")
         return True
 
+    def place_right_of(self, cube1: str, cube2: str) -> bool: # place Cube1 is to the right of cube2
+        self.TURN_90 = True
+        #if not self.pick_up(cube1):
+        #    print(f"[Right-of Pickup]: Could not pickup {cube1}")
+        #    return False
+        
+        # Get the cube position and adjust placement to be to the right of the block
+        cube_pos = self.get_cube_pos(cube2)
+        x_cube, y_cube, z_cube = map(float, cube_pos[:3])
+        target_pos1 = np.array([x_cube, y_cube - 0.08, z_cube + 0.13], dtype=float)
+        print(f"Position of cube {cube2} is: {x_cube, y_cube, z_cube}")
+
+        if not self.put_down(cube1, target_pos1):
+            print(f"[Right-of PutDown]: Could not put down {cube1} next to {cube2}")
+            self.TURN_90 = False
+            return False
+        else:
+            print(f"[Right-of PutDown]: Successfully placed {cube1} to the right of {cube2}!")
+            self.TURN_90 = False
+
+    def place_middle_behind(self, cube1, cube2, cube3) -> bool:
+        # Cube1 is to the right of Cube2 and you need to place cube 3 behind cube1 and 2 but between them both
+        
+        # Get Cube 1 position and just add an offset in the y and
+        #        x direction to place cube3 behind them both.
+        cube_pos = self.get_cube_pos(cube1)
+        x_cube, y_cube, z_cube = map(float, cube_pos[:3])
+        target_pos1 = np.array([x_cube - 0.045, y_cube + 0.019, z_cube], dtype=float)
+        print(f"Place Position of cube {cube3} is: {target_pos1}")
+
+        if not self.put_down(cube3, target_pos1):
+            print(f"[Place-middle-behind PutDown]: Could not put down {cube3} behind any cube.")
+            #self.TURN_90 = False
+            return False
+        else:
+            print(f"[Place-middle-behind]: Successfully placed {cube3} behind cube {cube1} and cube {cube2}!")
+            #self.TURN_90 = False
+        
+        return True
+
 
     def preds_to_pddl(self, preds, base_problem_file: str) -> None:
         with open(base_problem_file, "r") as file:
@@ -750,6 +805,8 @@ class MotionPrimitives:
             "adjacent-right": self.adjacent_right,
             "adjacent-top": self.adjacent_top,
             "put-down": self.put_down,  # keep if/when you use it
+            "place-right-of": self.place_right_of,
+            "place-middle-behind": self.place_middle_behind,
         }
 
         cleaned_plan = plan.replace("(", "").replace(")", "")

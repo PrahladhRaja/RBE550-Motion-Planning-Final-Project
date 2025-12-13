@@ -1,4 +1,4 @@
 (pick-up r blue)
-(adjacent-right r blue orange)
+(place-right-of r blue orange)
 (pick-up r red)
-(stack r red blue)
+(place-middle-behind r blue orange red)
