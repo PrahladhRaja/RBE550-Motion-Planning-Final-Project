@@ -13,6 +13,7 @@
 *.bak
 
 # Simulink generated code and build folders
+ompl-1.7.0/
 slprj/
 sccprj/
 work/
