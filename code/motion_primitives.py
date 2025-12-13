@@ -229,6 +229,8 @@ class MotionPrimitives:
             x_pose, y_pose, z_pose = position[0], position[1], position[2]
             goal_pos = np.array([x_pose, y_pose, z_pose], dtype=float)
             print(f"Place Position of cube {cube} is: {goal_pos}")
+
+        target_quat1 = [0,1,0,0]
             
         if self.TURN_90:
            target_quat1 = [1, 0, 0, 0]
@@ -261,6 +263,10 @@ class MotionPrimitives:
             return False
 
         print("[unstack]: Reached clear position for place down")
+
+        self.robot.control_dofs_position(place_goal)
+        for _ in range(20):
+            self.scene.step()
 
         final_place_open = place_goal.copy()
         final_place_open[-2:] = self.GRIPPER_OPEN
@@ -408,70 +414,70 @@ class MotionPrimitives:
         return True
 
 
-    def put_down(self, cube1:str) -> bool:
+    # def put_down(self, cube1:str) -> bool:
 
 
-        place_range = [[0.3, 0.5], [-0.35, 0.35]]
-        goal_pos = self.get_clear_spot(place_range)
+    #     place_range = [[0.3, 0.5], [-0.35, 0.35]]
+    #     goal_pos = self.get_clear_spot(place_range)
 
-        if goal_pos[0] < -10:
-            print("[put-down] failed to find clear spot to place down cube")
-            return False
+    #     if goal_pos[0] < -10:
+    #         print("[put-down] failed to find clear spot to place down cube")
+    #         return False
 
-        ee_link = self.robot.get_link(self.LINK_NAME)
-        quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
+    #     ee_link = self.robot.get_link(self.LINK_NAME)
+    #     quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
 
-        place_goal = self.robot.inverse_kinematics(
-            link=ee_link, pos=goal_pos, quat=quat
-        )
-        if place_goal is None:
-            print(f"[put-down] IK failed for pre-place of cube {cube1}")
-            return False
+    #     place_goal = self.robot.inverse_kinematics(
+    #         link=ee_link, pos=goal_pos, quat=quat
+    #     )
+    #     if place_goal is None:
+    #         print(f"[put-down] IK failed for pre-place of cube {cube1}")
+    #         return False
 
-        place_goal = np.array(place_goal, dtype=float)
-        place_goal[-2:] = self.GRIPPER_CLOSE
+    #     place_goal = np.array(place_goal, dtype=float)
+    #     place_goal[-2:] = self.GRIPPER_CLOSE
 
-        pre_path = self.planInterface.plan_path(
-            qpos_goal=place_goal,
-            qpos_start=self.transitional_state,
-            timeout=5.0,
-            smooth_path=True,
-            num_waypoints=100,
-            attached_object=self.blocks_state.get(cube1),
-            planner="RRTConnect",
-        )
+    #     pre_path = self.planInterface.plan_path(
+    #         qpos_goal=place_goal,
+    #         qpos_start=self.transitional_state,
+    #         timeout=5.0,
+    #         smooth_path=True,
+    #         num_waypoints=100,
+    #         attached_object=self.blocks_state.get(cube1),
+    #         planner="RRTConnect",
+    #     )
 
-        if not self.waypoint_plan(pre_path, cube1):
-            print(f"[put-down]: planning failed for placing down {cube1}")
-            return False
+    #     if not self.waypoint_plan(pre_path, cube1):
+    #         print(f"[put-down]: planning failed for placing down {cube1}")
+    #         return False
 
-        print("[put-down]: Reached clear position for place down, refining placement")
+    #     print("[put-down]: Reached clear position for place down, refining placement")
 
-        self.robot.control_dofs_position(place_goal)
-        for _ in range(20):
-            self.scene.step()
+    #     self.robot.control_dofs_position(place_goal)
+    #     for _ in range(20):
+    #         self.scene.step()
 
 
-        release_goal = place_goal.copy()
-        release_goal[-2:] = self.GRIPPER_OPEN
-        self.robot.control_dofs_position(release_goal)
-        for _ in range(20):
-            self.scene.step()
+    #     release_goal = place_goal.copy()
+    #     release_goal[-2:] = self.GRIPPER_OPEN
+    #     self.robot.control_dofs_position(release_goal)
+    #     for _ in range(20):
+    #         self.scene.step()
 
-        retreat_goal_pos = goal_pos.copy()
-        retreat_goal_pos[2] += 0.15
+    #     retreat_goal_pos = goal_pos.copy()
+    #     retreat_goal_pos[2] += 0.15
 
-        retreat_goal = self.robot.inverse_kinematics(
-            link=ee_link, pos=retreat_goal_pos, quat=quat
-        )
-        self.robot.control_dofs_position(retreat_goal)
-        for _ in range(20):
-            self.scene.step()
+    #     retreat_goal = self.robot.inverse_kinematics(
+    #         link=ee_link, pos=retreat_goal_pos, quat=quat
+    #     )
+    #     self.robot.control_dofs_position(retreat_goal)
+    #     for _ in range(20):
+    #         self.scene.step()
 
-        print(f"[put-down] Successfully placed cube {cube1}")
-        self.transitional_state = retreat_goal
-        self.held_cube = None
-        return True
+    #     print(f"[put-down] Successfully placed cube {cube1}")
+    #     self.transitional_state = retreat_goal
+    #     self.held_cube = None
+    #     return True
 
     def _push_away_from_base(self, x, y, min_radius=0.30, margin=0.05):
       
@@ -759,13 +765,14 @@ class MotionPrimitives:
             self.TURN_90 = False
 
     def place_middle_behind(self, cube1, cube2, cube3) -> bool:
+        self.TURN_90 = False
         # Cube1 is to the right of Cube2 and you need to place cube 3 behind cube1 and 2 but between them both
         
         # Get Cube 1 position and just add an offset in the y and
         #        x direction to place cube3 behind them both.
         cube_pos = self.get_cube_pos(cube1)
         x_cube, y_cube, z_cube = map(float, cube_pos[:3])
-        target_pos1 = np.array([x_cube - 0.045, y_cube + 0.019, z_cube], dtype=float)
+        target_pos1 = np.array([x_cube - 0.045, y_cube + 0.019, z_cube+self.Z_DISTANCE_GAP], dtype=float)
         print(f"Place Position of cube {cube3} is: {target_pos1}")
 
         if not self.put_down(cube3, target_pos1):
